@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Calculator</title>
+    <meta name="description" content="Calculate time between hours of the day or dates, save intervals, and automatically sum total accumulated time.">
+    
+    <!-- Open Graph / Meta -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Time Calculator — Fast, Private & Modern">
+    <meta property="og:description" content="Calculate time between hours of the day or dates, save intervals, and track total duration.">
+    
+    <!-- PWA & Mobile Meta -->
+    <meta name="theme-color" content="#07090e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300f2fe' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polyline points='12 6 12 12 16 14'></polyline></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Ambient Background Glow Orbs -->
+    <div class="ambient-bg" aria-hidden="true">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <div class="app-layout">
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>TIME CALCULATOR</h1>
+                </div>
+            </div>
+
+            <!-- Global Status & Live Time -->
+            <div class="nav-center">
+                <div id="status-badge" class="badge badge-valid">
+                    <span class="status-dot"></span>
+                    <span id="current-clock">00:00:00</span>
+                </div>
+
+                <div class="stats-group">
+                    <span class="stat-item" title="Total saved entries">
+                        <span class="stat-label">Saved:</span>
+                        <strong id="stat-count">0</strong>
+                    </span>
+                    <span class="stat-separator">•</span>
+                    <span class="stat-item" title="Total accumulated duration">
+                        <span class="stat-label">Total:</span>
+                        <strong id="stat-total-quick">0m</strong>
+                    </span>
+                    <span class="stat-separator">•</span>
+                    <span class="stat-item" title="Average duration per interval">
+                        <span class="stat-label">Avg:</span>
+                        <strong id="stat-avg-quick">0m</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Global Actions -->
+            <div class="nav-actions">
+                <!-- 24H / 12H Time Format Switcher -->
+                <div class="time-format-toggle" role="group" aria-label="Time Format">
+                    <button type="button" id="btn-format-24h" class="format-btn active" title="24-Hour format (European, no AM/PM)">24H</button>
+                    <button type="button" id="btn-format-12h" class="format-btn" title="12-Hour format (AM/PM)">12H</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Application Workspace with Centered Stage and Docked Right Sidebar -->
+        <div class="main-app-body">
+            <!-- Center Stage Scroll Container -->
+            <div class="center-stage-container">
+                <!-- CENTER STAGE: Calculator Workspace Card -->
+                <main class="calc-center-card" aria-label="Time Calculator">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="mode-icon">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <span class="card-title">CALCULATOR</span>
+                        </div>
+
+                        <!-- Mode Switcher Tabs -->
+                        <div class="view-switch" role="tablist">
+                            <button id="tab-hours" class="tab-btn active" role="tab" aria-selected="true">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 15 15"></polyline>
+                                </svg>
+                                Time of Day
+                            </button>
+                            <button id="tab-dates" class="tab-btn" role="tab" aria-selected="false">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                Between Dates
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="calc-card-body">
+                        <!-- MODE 1: Time of Day Form -->
+                        <div id="mode-hours-view" class="calc-mode-view">
+                            <!-- Time Inputs Grid -->
+                            <div class="time-inputs-grid">
+                                <!-- Start Time Box -->
+                                <div class="time-box">
+                                    <div class="time-box-top">
+                                        <span class="time-badge start-badge">START TIME</span>
+                                        <button type="button" id="btn-start-now" class="btn-text-action" title="Set to current time">Now</button>
+                                    </div>
+                                    <div class="custom-time-input-wrap" id="start-time-picker">
+                                        <input type="text" id="time-start-h" class="time-digit-input hours" maxlength="2" inputmode="numeric" value="10" placeholder="10" aria-label="Start Hours" autocomplete="off" spellcheck="false">
+                                        <span class="time-colon">:</span>
+                                        <input type="text" id="time-start-m" class="time-digit-input mins" maxlength="2" inputmode="numeric" value="00" placeholder="00" aria-label="Start Minutes" autocomplete="off" spellcheck="false">
+                                        <button type="button" id="time-start-period" class="period-toggle-btn hidden" aria-label="Toggle AM/PM" title="Toggle AM/PM">AM</button>
+                                    </div>
+                                    <div class="adjust-grid-8" data-target="start">
+                                        <button type="button" class="adjust-btn btn-plus" data-target="start" data-mins="60">+1h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="start" data-mins="-60">-1h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="start" data-mins="5">+5min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="start" data-mins="-5">-5min</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="start" data-mins="240">+4h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="start" data-mins="-240">-4h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="start" data-mins="15">+15min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="start" data-mins="-15">-15min</button>
+                                    </div>
+                                </div>
+
+                                <!-- Center Arrow Indicator -->
+                                <div class="time-arrow-indicator">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                </div>
+
+                                <!-- End Time Box -->
+                                <div class="time-box">
+                                    <div class="time-box-top">
+                                        <span class="time-badge end-badge">END TIME</span>
+                                        <button type="button" id="btn-end-now" class="btn-text-action" title="Set to current time">Now</button>
+                                    </div>
+                                    <div class="custom-time-input-wrap" id="end-time-picker">
+                                        <input type="text" id="time-end-h" class="time-digit-input hours" maxlength="2" inputmode="numeric" value="11" placeholder="11" aria-label="End Hours" autocomplete="off" spellcheck="false">
+                                        <span class="time-colon">:</span>
+                                        <input type="text" id="time-end-m" class="time-digit-input mins" maxlength="2" inputmode="numeric" value="30" placeholder="30" aria-label="End Minutes" autocomplete="off" spellcheck="false">
+                                        <button type="button" id="time-end-period" class="period-toggle-btn hidden" aria-label="Toggle AM/PM" title="Toggle AM/PM">AM</button>
+                                    </div>
+                                    <div class="adjust-grid-8" data-target="end">
+                                        <button type="button" class="adjust-btn btn-plus" data-target="end" data-mins="60">+1h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="end" data-mins="-60">-1h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="end" data-mins="5">+5min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="end" data-mins="-5">-5min</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="end" data-mins="240">+4h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="end" data-mins="-240">-4h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="end" data-mins="15">+15min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="end" data-mins="-15">-15min</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Overnight Option -->
+                            <div class="options-bar">
+                                <label class="custom-checkbox">
+                                    <input type="checkbox" id="check-next-day">
+                                    <span class="checkbox-box"></span>
+                                    <span class="checkbox-text">Ends next day (+24h across midnight)</span>
+                                </label>
+                                <span id="midnight-indicator" class="badge-mini hidden">Overnight (+1d)</span>
+                            </div>
+
+                            <!-- Live Result Banner with Beautiful Column -->
+                            <div class="live-result-banner">
+                                <div class="result-banner-header">
+                                    <span class="result-label">CALCULATED DURATION</span>
+                                    <span class="result-live-pill">LIVE</span>
+                                </div>
+                                <div class="result-main-value">
+                                    <span id="hours-res-primary" class="duration-glow">1h 30m</span>
+                                </div>
+                                <!-- 4-metric Column -->
+                                <div class="result-column-card">
+                                    <div class="result-column-row">
+                                        <span class="col-label">Days:</span>
+                                        <strong id="hours-res-days" class="col-value">0.06 days</strong>
+                                    </div>
+                                    <div class="result-column-row">
+                                        <span class="col-label">Hours:</span>
+                                        <strong id="hours-res-hours" class="col-value col-value-accent">1.50 hours</strong>
+                                    </div>
+                                    <div class="result-column-row">
+                                        <span class="col-label">Minutes:</span>
+                                        <strong id="hours-res-mins" class="col-value">90 mins</strong>
+                                    </div>
+                                    <div class="result-column-row">
+                                        <span class="col-label">Seconds:</span>
+                                        <strong id="hours-res-secs" class="col-value">5,400 secs</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Add to Saved List / Update Action -->
+                            <div class="action-btn-group">
+                                <button id="btn-add-hours-entry" class="btn btn-primary btn-save-action">
+                                    <svg class="icon-save" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span class="btn-text">Save Interval to List</span>
+                                </button>
+                                <button type="button" id="btn-cancel-hours-edit" class="btn btn-secondary btn-cancel-edit hidden" title="Cancel editing">Cancel</button>
+                            </div>
+                        </div>
+
+                        <!-- MODE 2: Between Dates Form -->
+                        <div id="mode-dates-view" class="calc-mode-view hidden">
+                            <!-- Date & Time Inputs Grid -->
+                            <div class="time-inputs-grid">
+                                <!-- Start Date & Time Box -->
+                                <div class="time-box">
+                                    <div class="time-box-top">
+                                        <span class="time-badge start-badge">START DATE</span>
+                                        <button type="button" id="btn-date-start-now" class="btn-text-action" title="Set to current date and time">Now</button>
+                                    </div>
+                                    <div class="date-picker-wrap">
+                                        <input type="date" id="dates-start-d" class="date-picker-input" aria-label="Start Date">
+                                    </div>
+                                    <div class="custom-time-input-wrap" id="dates-start-time-picker">
+                                        <input type="text" id="dates-start-h" class="time-digit-input hours" maxlength="2" inputmode="numeric" value="10" placeholder="10" aria-label="Start Hours" autocomplete="off" spellcheck="false">
+                                        <span class="time-colon">:</span>
+                                        <input type="text" id="dates-start-m" class="time-digit-input mins" maxlength="2" inputmode="numeric" value="00" placeholder="00" aria-label="Start Minutes" autocomplete="off" spellcheck="false">
+                                        <button type="button" id="dates-start-period" class="period-toggle-btn hidden" aria-label="Toggle AM/PM" title="Toggle AM/PM">AM</button>
+                                    </div>
+                                    <div class="adjust-grid-8" data-target="dates-start">
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-start" data-mins="60">+1h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-start" data-mins="-60">-1h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-start" data-mins="5">+5min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-start" data-mins="-5">-5min</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-start" data-mins="240">+4h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-start" data-mins="-240">-4h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-start" data-mins="15">+15min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-start" data-mins="-15">-15min</button>
+                                    </div>
+                                </div>
+
+                                <!-- Center Arrow Indicator -->
+                                <div class="time-arrow-indicator">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                </div>
+
+                                <!-- End Date & Time Box -->
+                                <div class="time-box">
+                                    <div class="time-box-top">
+                                        <span class="time-badge end-badge">END DATE</span>
+                                        <button type="button" id="btn-date-end-now" class="btn-text-action" title="Set to current date and time">Now</button>
+                                    </div>
+                                    <div class="date-picker-wrap">
+                                        <input type="date" id="dates-end-d" class="date-picker-input" aria-label="End Date">
+                                    </div>
+                                    <div class="custom-time-input-wrap" id="dates-end-time-picker">
+                                        <input type="text" id="dates-end-h" class="time-digit-input hours" maxlength="2" inputmode="numeric" value="18" placeholder="18" aria-label="End Hours" autocomplete="off" spellcheck="false">
+                                        <span class="time-colon">:</span>
+                                        <input type="text" id="dates-end-m" class="time-digit-input mins" maxlength="2" inputmode="numeric" value="00" placeholder="00" aria-label="End Minutes" autocomplete="off" spellcheck="false">
+                                        <button type="button" id="dates-end-period" class="period-toggle-btn hidden" aria-label="Toggle AM/PM" title="Toggle AM/PM">AM</button>
+                                    </div>
+                                    <div class="adjust-grid-8" data-target="dates-end">
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-end" data-mins="60">+1h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-end" data-mins="-60">-1h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-end" data-mins="5">+5min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-end" data-mins="-5">-5min</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-end" data-mins="240">+4h</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-end" data-mins="-240">-4h</button>
+                                        <button type="button" class="adjust-btn btn-plus" data-target="dates-end" data-mins="15">+15min</button>
+                                        <button type="button" class="adjust-btn btn-minus" data-target="dates-end" data-mins="-15">-15min</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Dates Result Banner with Beautiful Column -->
+                            <div class="live-result-banner">
+                                <div class="result-banner-header">
+                                    <span class="result-label">DATE DIFFERENCE</span>
+                                    <span class="result-live-pill">LIVE</span>
+                                </div>
+                                <div class="result-main-value">
+                                    <span id="dates-res-primary" class="duration-glow">0d 0h 0m</span>
+                                </div>
+                                <!-- 4-metric Column -->
+                                <div class="result-column-card">
+                                    <div class="result-column-row">
+                                        <span class="col-label">Days:</span>
+                                        <strong id="dates-res-days" class="col-value">0.00 days</strong>
+                                    </div>
+                                    <div class="result-column-row">
+                                        <span class="col-label">Hours:</span>
+                                        <strong id="dates-res-hours" class="col-value col-value-accent">0.00 hours</strong>
+                                    </div>
+                                    <div class="result-column-row">
+                                        <span class="col-label">Minutes:</span>
+                                        <strong id="dates-res-mins" class="col-value">0 mins</strong>
+                                    </div>
+                                    <div class="result-column-row">
+                                        <span class="col-label">Seconds:</span>
+                                        <strong id="dates-res-secs" class="col-value">0 secs</strong>
+                                    </div>
+                                </div>
+                                <div class="dates-meta-bar">
+                                    <span>Business Days: <strong id="dates-res-workdays">0d</strong></span>
+                                    <span class="meta-dot">•</span>
+                                    <span>Weekend Days: <strong id="dates-res-weekends">0d</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Add to Saved List / Update Action -->
+                            <div class="action-btn-group">
+                                <button id="btn-add-dates-entry" class="btn btn-primary btn-save-action">
+                                    <svg class="icon-save" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span class="btn-text">Save Interval to List</span>
+                                </button>
+                                <button type="button" id="btn-cancel-dates-edit" class="btn btn-secondary btn-cancel-edit hidden" title="Cancel editing">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+
+            <!-- RIGHT SIDEBAR: Attached to the right wall of the screen -->
+            <aside class="saved-sidebar-card docked-right" aria-label="Saved Time List">
+                <!-- Top Actions Bar: Export, Clear, Copy -->
+                <div class="sidebar-header-actions">
+                    <button type="button" id="btn-export-dropdown" class="btn btn-secondary btn-sm sidebar-top-btn" title="Export data">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Export</span>
+                    </button>
+
+                    <button type="button" id="btn-clear-all" class="btn btn-secondary btn-sm btn-danger-hover sidebar-top-btn" title="Clear all saved intervals">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>Clear</span>
+                    </button>
+
+                    <button type="button" id="btn-copy-summary" class="btn btn-secondary btn-sm sidebar-top-btn" title="Copy formatted text report">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span id="copy-summary-text">Copy</span>
+                    </button>
+                </div>
+
+                    <!-- Scrollable List Container -->
+                    <div class="saved-list-container">
+                        <!-- Empty State -->
+                        <div id="entries-empty" class="empty-state">
+                            <div class="empty-icon">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <h4>No saved intervals yet</h4>
+                            <p>Calculate an interval on the left and click <strong>«Save Interval to List»</strong> to start tracking total time.</p>
+                        </div>
+
+                        <!-- Saved Items List -->
+                        <div id="entries-list-wrap" class="entries-items-list hidden">
+                            <!-- Dynamic Interval Rows -->
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+    <!-- Hidden Export Menu Dropdown -->
+    <div id="export-menu" class="dropdown-menu hidden" role="menu">
+        <button id="export-csv-btn" class="dropdown-item" role="menuitem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <text x="7" y="16" font-size="7" font-weight="bold" fill="currentColor">CSV</text>
+            </svg>
+            <span>Export to CSV</span>
+        </button>
+        <button id="export-json-btn" class="dropdown-item" role="menuitem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <text x="7" y="16" font-size="6" font-weight="bold" fill="currentColor">JSON</text>
+            </svg>
+            <span>Export to JSON</span>
+        </button>
+        <button id="import-json-btn" class="dropdown-item" role="menuitem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 16 12 12 8 16"></polyline>
+                <line x1="12" y1="12" x2="12" y2="21"></line>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+            </svg>
+            <span>Import from JSON</span>
+        </button>
+        <input type="file" id="file-import" accept=".json" class="hidden">
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((reg) => console.log('PWA ServiceWorker registered:', reg.scope))
+                    .catch((err) => console.error('PWA ServiceWorker failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
