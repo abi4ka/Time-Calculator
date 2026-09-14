@@ -205,14 +205,22 @@
 
     /**
      * Format duration in seconds into "Xh Ym", "Ym", or "Xs"
+     * If includeDays is true, formats into "Xd Yh Zm" (e.g. for Dates mode)
      */
-    function formatDuration(seconds) {
-        if (!seconds || seconds <= 0) return '0m';
+    function formatDuration(seconds, includeDays = false) {
+        if (!seconds || seconds <= 0) return includeDays ? '0d\u00A00h\u00A00m' : '0m';
         const totalMins = Math.floor(seconds / 60);
-        const hours = Math.floor(totalMins / 60);
         const mins = totalMins % 60;
+        const totalHours = Math.floor(totalMins / 60);
         const secs = seconds % 60;
 
+        if (includeDays) {
+            const days = Math.floor(totalHours / 24);
+            const hours = totalHours % 24;
+            return `${days}d\u00A0${hours}h\u00A0${mins}m`;
+        }
+
+        const hours = totalHours;
         const parts = [];
         if (hours > 0) parts.push(`${hours}h`);
         if (mins > 0 || (hours === 0 && secs === 0)) parts.push(`${mins}m`);
@@ -679,15 +687,15 @@
         const minsInt = Math.floor(res.totalSeconds / 60);
         const secsInt = res.totalSeconds;
 
-        elements.datesResPrimary.textContent = formatDuration(res.totalSeconds);
+        elements.datesResPrimary.textContent = formatDuration(res.totalSeconds, true);
         elements.datesResDays.textContent = `${daysDec} days`;
         elements.datesResHours.textContent = `${hoursDec} hours`;
         elements.datesResMins.textContent = `${minsInt.toLocaleString('en-US')} mins`;
         elements.datesResSecs.textContent = `${secsInt.toLocaleString('en-US')} secs`;
         elements.datesResWorkdays.textContent = res.workdays;
         elements.datesResWeekends.textContent = res.weekends;
-        elements.datesResWorkdays.title = formatDuration(res.workdaySeconds);
-        elements.datesResWeekends.title = formatDuration(res.weekendSeconds);
+        elements.datesResWorkdays.title = formatDuration(res.workdaySeconds, true);
+        elements.datesResWeekends.title = formatDuration(res.weekendSeconds, true);
     }
 
     function adjustTime(target, deltaMins) {
@@ -813,7 +821,7 @@
     function addInterval(item) {
         state.intervals.unshift(item);
         saveIntervals();
-        showToast(`Interval added (${formatDuration(item.totalSeconds)})`, 'success');
+        showToast(`Interval added (${formatDuration(item.totalSeconds, item.mode === 'dates')})`, 'success');
     }
 
     function deleteInterval(id) {
@@ -898,7 +906,7 @@
                     </div>
                     <div class="item-right">
                         <div class="item-duration-wrap">
-                            <span class="item-duration-main">${formatDuration(item.totalSeconds)}</span>
+                            <span class="item-duration-main">${formatDuration(item.totalSeconds, item.mode === 'dates')}</span>
                             <span class="item-duration-sub">${decHours}h</span>
                         </div>
                         <div class="item-actions">
@@ -958,7 +966,7 @@
             return {
                 num,
                 range,
-                duration: formatDuration(item.totalSeconds),
+                duration: formatDuration(item.totalSeconds, item.mode === 'dates'),
             };
         });
 
@@ -994,7 +1002,7 @@
             s.start,
             s.end,
             s.isNextDay ? 'Yes' : 'No',
-            `"${formatDuration(s.totalSeconds)}"`,
+            `"${formatDuration(s.totalSeconds, s.mode === 'dates')}"`,
             (s.totalSeconds / 3600).toFixed(2),
             s.totalSeconds,
         ]);
