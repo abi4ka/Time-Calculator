@@ -343,10 +343,13 @@ body {
     width: 100%;
     height: calc(100vh - 56px);
     overflow: hidden;
+    display: flex;
+    flex-direction: row;
 }
 
 .center-stage-container {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     height: 100%;
     overflow-y: auto;
     display: flex;
@@ -1049,11 +1052,10 @@ body {
 }
 
 .saved-sidebar-card.docked-right {
-    position: absolute;
-    top: 26px;
-    right: 26px;
+    position: static;
+    margin: 26px 26px 26px 0;
     width: 380px;
-    max-width: calc(100vw - 52px);
+    max-width: 380px;
     height: auto;
     max-height: calc(100vh - 56px - 52px);
     background: var(--bg-surface);
@@ -1477,19 +1479,11 @@ body {
 /* ==========================================================================
    Responsive Adaptations
    ========================================================================== */
-@media (max-width: 1320px) {
-    .main-app-body {
-        display: flex;
-        flex-direction: row;
-    }
-    .center-stage-container {
-        flex: 1;
-        width: auto;
-    }
+@media (max-width: 1280px) {
     .saved-sidebar-card.docked-right {
-        position: static;
-        margin: 26px 20px 26px 0;
-        width: 360px;
+        margin: 24px 18px 24px 0;
+        width: 350px;
+        max-width: 350px;
     }
 }
 
@@ -1520,7 +1514,7 @@ body {
 }
 
 @media (max-width: 640px) {
-    .workspace-scroll-container {
+    .center-stage-container {
         padding: 14px 12px 24px;
     }
     .navbar {
