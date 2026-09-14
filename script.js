@@ -707,6 +707,12 @@
         // Read current 24-hour internal values before switching
         const start24 = getStartTime24();
         const end24 = getEndTime24();
+        const datesStart24 = (elements.datesStartH && elements.datesStartM && elements.datesStartPeriod)
+            ? getTimePickerValue(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod)
+            : null;
+        const datesEnd24 = (elements.datesEndH && elements.datesEndM && elements.datesEndPeriod)
+            ? getTimePickerValue(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod)
+            : null;
 
         state.timeFormat = fmt;
         localStorage.setItem(FORMAT_KEY, fmt);
@@ -723,9 +729,7 @@
         setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, start24);
         setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, end24);
 
-        if (elements.datesStartH && elements.datesEndH) {
-            const datesStart24 = getTimePickerValue(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod);
-            const datesEnd24 = getTimePickerValue(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod);
+        if (datesStart24 !== null && datesEnd24 !== null) {
             setTimePickerValue(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod, datesStart24);
             setTimePickerValue(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod, datesEnd24);
             updateDatesCalculation();
