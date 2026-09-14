@@ -855,6 +855,9 @@
             return;
         }
         if (confirm('Are you sure you want to clear all saved intervals?')) {
+            if (state.editingId) {
+                resetEditMode();
+            }
             state.intervals = [];
             saveIntervals();
             showToast('All saved intervals cleared', 'info');
@@ -1044,6 +1047,9 @@
             try {
                 const imported = JSON.parse(event.target.result);
                 if (Array.isArray(imported)) {
+                    if (state.editingId) {
+                        resetEditMode();
+                    }
                     state.intervals = imported;
                     saveIntervals();
                     showToast(`Imported ${imported.length} intervals`, 'success');
@@ -1163,27 +1169,37 @@
     function setupEventListeners() {
         // Mode Tabs
         elements.tabHours.addEventListener('click', () => {
-            state.currentMode = 'hours';
-            elements.tabHours.classList.add('active');
-            elements.tabHours.setAttribute('aria-selected', 'true');
-            elements.tabDates.classList.remove('active');
-            elements.tabDates.setAttribute('aria-selected', 'false');
+            if (state.currentMode !== 'hours') {
+                if (state.editingId) {
+                    resetEditMode();
+                }
+                state.currentMode = 'hours';
+                elements.tabHours.classList.add('active');
+                elements.tabHours.setAttribute('aria-selected', 'true');
+                elements.tabDates.classList.remove('active');
+                elements.tabDates.setAttribute('aria-selected', 'false');
 
-            elements.modeHoursView.classList.remove('hidden');
-            elements.modeDatesView.classList.add('hidden');
-            updateHoursCalculation();
+                elements.modeHoursView.classList.remove('hidden');
+                elements.modeDatesView.classList.add('hidden');
+                updateHoursCalculation();
+            }
         });
 
         elements.tabDates.addEventListener('click', () => {
-            state.currentMode = 'dates';
-            elements.tabDates.classList.add('active');
-            elements.tabDates.setAttribute('aria-selected', 'true');
-            elements.tabHours.classList.remove('active');
-            elements.tabHours.setAttribute('aria-selected', 'false');
+            if (state.currentMode !== 'dates') {
+                if (state.editingId) {
+                    resetEditMode();
+                }
+                state.currentMode = 'dates';
+                elements.tabDates.classList.add('active');
+                elements.tabDates.setAttribute('aria-selected', 'true');
+                elements.tabHours.classList.remove('active');
+                elements.tabHours.setAttribute('aria-selected', 'false');
 
-            elements.modeDatesView.classList.remove('hidden');
-            elements.modeHoursView.classList.add('hidden');
-            updateDatesCalculation();
+                elements.modeDatesView.classList.remove('hidden');
+                elements.modeHoursView.classList.add('hidden');
+                updateDatesCalculation();
+            }
         });
 
         // 24H / 12H Format Switcher
@@ -1237,7 +1253,8 @@
             const forceNextDay = elements.checkNextDay.checked;
             const res = calculateHoursDiff(start, end, forceNextDay);
 
-            if (state.editingId) {
+            const editingItem = state.editingId ? state.intervals.find((s) => s.id === state.editingId) : null;
+            if (editingItem && editingItem.mode === 'hours') {
                 updateInterval(state.editingId, {
                     mode: 'hours',
                     start,
@@ -1246,8 +1263,8 @@
                     totalSeconds: res.totalSeconds,
                 });
                 resetEditMode();
-                showToast('Interval updated', 'success');
             } else {
+                if (state.editingId) resetEditMode();
                 const newEntry = {
                     id: 'int_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                     mode: 'hours',
@@ -1288,7 +1305,8 @@
                 return;
             }
 
-            if (state.editingId) {
+            const editingItem = state.editingId ? state.intervals.find((s) => s.id === state.editingId) : null;
+            if (editingItem && editingItem.mode === 'dates') {
                 updateInterval(state.editingId, {
                     mode: 'dates',
                     start,
@@ -1297,8 +1315,8 @@
                     totalSeconds: res.totalSeconds,
                 });
                 resetEditMode();
-                showToast('Interval updated', 'success');
             } else {
+                if (state.editingId) resetEditMode();
                 const newEntry = {
                     id: 'int_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                     mode: 'dates',
