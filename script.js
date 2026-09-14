@@ -914,9 +914,7 @@
         const decHours = (totalSeconds / 3600).toFixed(2);
         const formattedTotal = formatDuration(totalSeconds);
 
-        let report = `⏱️ SAVED TIME REPORT\n`;
-        report += `════════════════════════════════════\n`;
-        report += `Format: ${state.timeFormat.toUpperCase()}\n`;
+        let report = `Format: ${state.timeFormat.toUpperCase()}\n`;
         report += `Total Intervals: ${state.intervals.length}\n`;
         report += `Total Duration: ${formattedTotal} (${decHours}h)\n`;
         report += `════════════════════════════════════\n\n`;
@@ -945,8 +943,6 @@
         rows.forEach((r) => {
             report += `#${r.num}  ${r.range.padEnd(maxRangeLen + 2)}  ${r.duration}\n`;
         });
-
-        report += `\nGenerated with Time Calculator`;
 
         navigator.clipboard.writeText(report).then(
             () => {
