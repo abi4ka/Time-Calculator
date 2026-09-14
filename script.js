@@ -175,10 +175,28 @@
     }
 
     /**
+     * Format ISO datetime string (YYYY-MM-DDTHH:MM) according to active 24H or 12H preference
+     */
+    function formatDateDisplay(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: state.timeFormat === '12h'
+        });
+    }
+
+    /**
      * Format time string (HH:MM) according to active 24H or 12H preference for display
      */
     function formatTimeDisplay(timeStr) {
         if (!timeStr) return '';
+        if (timeStr.includes('T')) {
+            return formatDateDisplay(timeStr);
+        }
         if (state.timeFormat === '24h') {
             return timeStr;
         }
@@ -843,18 +861,7 @@
 
                 let rangeText = '';
                 if (item.mode === 'dates') {
-                    const fmtDate = (str) => {
-                        if (!str) return '';
-                        const d = new Date(str);
-                        return isNaN(d) ? str : d.toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: state.timeFormat === '12h'
-                        });
-                    };
-                    rangeText = `<span>${fmtDate(item.start)}</span> <span class="arrow">→</span> <span>${fmtDate(item.end)}</span>`;
+                    rangeText = `<span>${formatDateDisplay(item.start)}</span> <span class="arrow">→</span> <span>${formatDateDisplay(item.end)}</span>`;
                 } else {
                     const overnightBadge = item.isNextDay ? '<span class="item-overnight-tag">+1d</span>' : '';
                     const startDisp = formatTimeDisplay(item.start);
@@ -914,13 +921,29 @@
         report += `Total Duration: ${formattedTotal} (${decHours}h)\n`;
         report += `════════════════════════════════════\n\n`;
 
-        state.intervals.forEach((item, i) => {
+        const rows = state.intervals.map((item, i) => {
             const num = state.intervals.length - i;
-            const startDisp = formatTimeDisplay(item.start);
-            const endDisp = formatTimeDisplay(item.end);
-            const range = `${startDisp} — ${endDisp}${item.isNextDay ? ' (+1d)' : ''}`;
+            let range = '';
+            if (item.mode === 'dates') {
+                const startDisp = formatDateDisplay(item.start);
+                const endDisp = formatDateDisplay(item.end);
+                range = `${startDisp} — ${endDisp}`;
+            } else {
+                const startDisp = formatTimeDisplay(item.start);
+                const endDisp = formatTimeDisplay(item.end);
+                range = `${startDisp} — ${endDisp}${item.isNextDay ? ' (+1d)' : ''}`;
+            }
             const dec = (item.totalSeconds / 3600).toFixed(2);
-            report += `#${num}  ${range.padEnd(22)}  ${formatDuration(item.totalSeconds)} (${dec}h)\n`;
+            return {
+                num,
+                range,
+                duration: `${formatDuration(item.totalSeconds)} (${dec}h)`,
+            };
+        });
+
+        const maxRangeLen = Math.max(22, ...rows.map((r) => r.range.length));
+        rows.forEach((r) => {
+            report += `#${r.num}  ${r.range.padEnd(maxRangeLen + 2)}  ${r.duration}\n`;
         });
 
         report += `\nGenerated with Time Calculator`;
