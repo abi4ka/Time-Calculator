@@ -502,25 +502,18 @@
             }
 
             const num = parseInt(val, 10);
-            if (state.timeFormat === '24h') {
-                if (val.length >= 2 || num >= 3) {
-                    const clamped = Math.min(23, num);
-                    hEl.value = pad(clamped);
-                    mEl.focus();
-                    mEl.select();
+            if (val.length >= 2) {
+                let clamped;
+                if (state.timeFormat === '24h') {
+                    clamped = Math.min(23, Math.max(0, num));
                 } else {
-                    hEl.value = val;
+                    clamped = Math.min(12, Math.max(1, num));
                 }
+                hEl.value = pad(clamped);
+                mEl.focus();
+                mEl.select();
             } else {
-                // 12H mode
-                if (val.length >= 2 || num >= 2) {
-                    let clamped = Math.min(12, Math.max(1, num));
-                    hEl.value = pad(clamped);
-                    mEl.focus();
-                    mEl.select();
-                } else {
-                    hEl.value = val;
-                }
+                hEl.value = val;
             }
             onUpdate();
         });
@@ -534,8 +527,8 @@
             }
 
             const num = parseInt(val, 10);
-            if (val.length >= 2 || num >= 6) {
-                const clamped = Math.min(59, num);
+            if (val.length >= 2) {
+                const clamped = Math.min(59, Math.max(0, num));
                 mEl.value = pad(clamped);
             } else {
                 mEl.value = val;
