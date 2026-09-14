@@ -917,7 +917,7 @@
         let report = `Format: ${state.timeFormat.toUpperCase()}\n`;
         report += `Total Intervals: ${state.intervals.length}\n`;
         report += `Total Duration: ${formattedTotal} (${decHours}h)\n`;
-        report += `════════════════════════════════════\n\n`;
+        report += `════════════════════════════════════\n`;
 
         const rows = state.intervals.map((item, i) => {
             const num = state.intervals.length - i;
