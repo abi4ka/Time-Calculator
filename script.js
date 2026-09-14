@@ -23,6 +23,7 @@
         timeFormat: localStorage.getItem(FORMAT_KEY) || '24h', // default 24h for European preference
         intervals: [],
         editingId: null,
+        userOvernightForced: false,
     };
 
     // =========================================================================
@@ -642,8 +643,22 @@
     function updateHoursCalculation() {
         const start = getStartTime24();
         const end = getEndTime24();
-        const forceNextDay = elements.checkNextDay.checked;
+        const startMins = parseTimeToMinutes(start);
+        const endMins = parseTimeToMinutes(end);
 
+        const isAutoOvernight = endMins < startMins;
+
+        if (isAutoOvernight) {
+            elements.checkNextDay.checked = true;
+            elements.checkNextDay.disabled = true;
+            elements.checkNextDay.title = 'Automatically overnight (+1d) because end time is earlier than start time';
+        } else {
+            elements.checkNextDay.disabled = false;
+            elements.checkNextDay.removeAttribute('title');
+            elements.checkNextDay.checked = Boolean(state.userOvernightForced);
+        }
+
+        const forceNextDay = elements.checkNextDay.checked;
         const res = calculateHoursDiff(start, end, forceNextDay);
 
         if (res.isNextDay) {
@@ -710,21 +725,22 @@
             setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, `${hh}:${mm}`);
             updateHoursCalculation();
         } else if (target === 'end') {
+            const startMins = parseTimeToMinutes(getStartTime24());
             let endMins = parseTimeToMinutes(getEndTime24());
-            let isNextDay = elements.checkNextDay.checked;
+            const isNextDay = elements.checkNextDay.checked || (endMins < startMins);
 
             let totalEndMins = endMins + (isNextDay ? 24 * 60 : 0);
             totalEndMins += deltaMins;
 
             if (totalEndMins < 0) {
                 totalEndMins = ((totalEndMins % 1440) + 1440) % 1440;
-                elements.checkNextDay.checked = false;
+                state.userOvernightForced = false;
                 endMins = totalEndMins;
             } else if (totalEndMins >= 24 * 60) {
-                elements.checkNextDay.checked = true;
                 endMins = totalEndMins % (24 * 60);
+                state.userOvernightForced = (endMins >= startMins);
             } else {
-                elements.checkNextDay.checked = false;
+                state.userOvernightForced = false;
                 endMins = totalEndMins;
             }
 
@@ -1112,6 +1128,7 @@
 
             setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, item.start || '10:00');
             setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, item.end || '11:00');
+            state.userOvernightForced = Boolean(item.isNextDay);
             elements.checkNextDay.checked = Boolean(item.isNextDay);
 
             updateHoursCalculation();
@@ -1134,6 +1151,7 @@
 
     function resetEditMode() {
         state.editingId = null;
+        state.userOvernightForced = false;
 
         const hoursText = elements.btnAddHoursEntry.querySelector('.btn-text');
         if (hoursText) hoursText.textContent = 'Save Interval to List';
@@ -1197,7 +1215,10 @@
         setupCustomTimePicker(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod, updateDatesCalculation);
         setupCustomTimePicker(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod, updateDatesCalculation);
 
-        elements.checkNextDay.addEventListener('change', updateHoursCalculation);
+        elements.checkNextDay.addEventListener('change', () => {
+            state.userOvernightForced = elements.checkNextDay.checked;
+            updateHoursCalculation();
+        });
 
         // "Now" buttons
         elements.btnStartNow.addEventListener('click', () => {

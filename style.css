@@ -673,6 +673,15 @@ body {
     margin-bottom: 2px;
 }
 
+.custom-checkbox:has(input:disabled) {
+    cursor: default;
+    opacity: 0.8;
+}
+
+.custom-checkbox:has(input:disabled) .checkbox-box {
+    filter: brightness(0.9);
+}
+
 .badge-mini {
     font-size: 0.65rem;
     font-weight: 700;
