@@ -331,44 +331,81 @@
      */
     function calculateDatesDiff(startDateStr, endDateStr) {
         if (!startDateStr || !endDateStr) {
-            return { totalSeconds: 0, days: 0, hours: 0, workdays: 0, weekends: 0 };
+            return {
+                totalSeconds: 0,
+                totalDays: 0,
+                totalHours: 0,
+                workdaySeconds: 0,
+                weekendSeconds: 0,
+                workdays: '0d',
+                weekends: '0d',
+                invalid: false,
+            };
         }
 
         const start = new Date(startDateStr);
         const end = new Date(endDateStr);
-        const diffMs = end - start;
+        const diffMs = end.getTime() - start.getTime();
 
         if (isNaN(diffMs) || diffMs < 0) {
-            return { totalSeconds: 0, days: 0, hours: 0, workdays: 0, weekends: 0, invalid: true };
+            return {
+                totalSeconds: 0,
+                totalDays: 0,
+                totalHours: 0,
+                workdaySeconds: 0,
+                weekendSeconds: 0,
+                workdays: '0d',
+                weekends: '0d',
+                invalid: true,
+            };
         }
 
         const totalSeconds = Math.floor(diffMs / 1000);
         const totalHours = Math.floor(totalSeconds / 3600);
         const totalDays = Math.floor(totalHours / 24);
 
-        let workdays = 0;
-        let weekends = 0;
-        const cur = new Date(start);
-        cur.setHours(0, 0, 0, 0);
-        const endLimit = new Date(end);
-        endLimit.setHours(0, 0, 0, 0);
+        // O(1) analytical calculation of full weeks (7 days = 5 workdays + 2 weekend days)
+        const fullWeeks = Math.floor(totalSeconds / (7 * 86400));
+        const fullWeekWeekendSeconds = fullWeeks * 2 * 86400;
 
-        while (cur <= endLimit) {
+        let weekendRemainderSeconds = 0;
+        let cur = new Date(start.getTime() + fullWeeks * 7 * 86400 * 1000);
+
+        // At most 7 slice iterations for remainder period to avoid freezing on large year gaps
+        while (cur < end) {
+            const nextMidnight = new Date(cur);
+            nextMidnight.setHours(24, 0, 0, 0);
+
+            const sliceEnd = nextMidnight < end ? nextMidnight : end;
+            const sliceSeconds = Math.max(0, Math.floor((sliceEnd.getTime() - cur.getTime()) / 1000));
+
             const dayOfWeek = cur.getDay(); // 0 is Sun, 6 is Sat
             if (dayOfWeek === 0 || dayOfWeek === 6) {
-                weekends++;
-            } else {
-                workdays++;
+                weekendRemainderSeconds += sliceSeconds;
             }
-            cur.setDate(cur.getDate() + 1);
+
+            cur = sliceEnd;
         }
+
+        const totalWeekendSeconds = fullWeekWeekendSeconds + weekendRemainderSeconds;
+        const totalWorkdaySeconds = Math.max(0, totalSeconds - totalWeekendSeconds);
+
+        const formatDays = (seconds) => {
+            if (!seconds || seconds <= 0) return '0d';
+            const d = seconds / 86400;
+            if (d >= 1 && d % 1 === 0) return `${d}d`;
+            if (d < 0.01) return '<0.01d';
+            return `${d.toFixed(2)}d`;
+        };
 
         return {
             totalSeconds,
             totalDays,
             totalHours,
-            workdays,
-            weekends,
+            workdaySeconds: totalWorkdaySeconds,
+            weekendSeconds: totalWeekendSeconds,
+            workdays: formatDays(totalWorkdaySeconds),
+            weekends: formatDays(totalWeekendSeconds),
             invalid: false,
         };
     }
@@ -647,6 +684,8 @@
             elements.datesResSecs.textContent = '0 secs';
             elements.datesResWorkdays.textContent = '0d';
             elements.datesResWeekends.textContent = '0d';
+            elements.datesResWorkdays.removeAttribute('title');
+            elements.datesResWeekends.removeAttribute('title');
             return;
         }
 
@@ -660,8 +699,10 @@
         elements.datesResHours.textContent = `${hoursDec} hours`;
         elements.datesResMins.textContent = `${minsInt.toLocaleString('en-US')} mins`;
         elements.datesResSecs.textContent = `${secsInt.toLocaleString('en-US')} secs`;
-        elements.datesResWorkdays.textContent = `${res.workdays.toLocaleString('en-US')}d`;
-        elements.datesResWeekends.textContent = `${res.weekends.toLocaleString('en-US')}d`;
+        elements.datesResWorkdays.textContent = res.workdays;
+        elements.datesResWeekends.textContent = res.weekends;
+        elements.datesResWorkdays.title = formatDuration(res.workdaySeconds);
+        elements.datesResWeekends.title = formatDuration(res.weekendSeconds);
     }
 
     function adjustTime(target, deltaMins) {
