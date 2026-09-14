@@ -88,14 +88,6 @@
         datesResWorkdays: document.getElementById('dates-res-workdays'),
         datesResWeekends: document.getElementById('dates-res-weekends'),
 
-        // Right Sidebar / Summary Billboard
-        heroTotalTime: document.getElementById('hero-total-time'),
-        heroDecimalHours: document.getElementById('hero-decimal-hours'),
-        heroTotalMinutes: document.getElementById('hero-total-minutes'),
-        heroEntryCount: document.getElementById('hero-entry-count'),
-        heroAvgTime: document.getElementById('hero-avg-time'),
-        badgeSavedCount: document.getElementById('badge-saved-count'),
-
         // List Containers
         entriesEmpty: document.getElementById('entries-empty'),
         entriesListWrap: document.getElementById('entries-list-wrap'),
@@ -864,15 +856,8 @@
         const totalMins = Math.floor(totalSeconds / 60);
         const decimalHours = (totalSeconds / 3600).toFixed(2);
 
-        // Update Billboard Card & Top Stats
+        // Update Top Stats
         const formattedTotal = formatDuration(totalSeconds);
-        if (elements.heroTotalTime) elements.heroTotalTime.textContent = formattedTotal;
-        if (elements.heroDecimalHours) elements.heroDecimalHours.textContent = `${decimalHours}h`;
-        if (elements.heroTotalMinutes) elements.heroTotalMinutes.textContent = `${totalMins.toLocaleString('en-US')}m`;
-        if (elements.heroEntryCount) elements.heroEntryCount.textContent = count;
-        if (elements.heroAvgTime) elements.heroAvgTime.textContent = formatDuration(avgSeconds);
-        if (elements.badgeSavedCount) elements.badgeSavedCount.textContent = count;
-
         elements.statCount.textContent = count;
         elements.statTotalQuick.textContent = formattedTotal;
         if (elements.statAvgQuick) elements.statAvgQuick.textContent = formatDuration(avgSeconds);
@@ -1215,18 +1200,6 @@
         elements.btnEndNow.addEventListener('click', () => {
             setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, getCurrentTimeString());
             updateHoursCalculation();
-        });
-
-        // Presets for start
-        document.querySelectorAll('.preset-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                const h = e.currentTarget.dataset.h;
-                const m = e.currentTarget.dataset.m;
-                if (h && m) {
-                    setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, `${h}:${m}`);
-                    updateHoursCalculation();
-                }
-            });
         });
 
         // 8 Time Control Buttons (+1h, -1h, +5min, -5min, +4h, -4h, +15min, -15min)
