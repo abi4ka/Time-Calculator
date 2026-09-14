@@ -911,16 +911,19 @@
         }
 
         const totalSeconds = state.intervals.reduce((sum, s) => sum + (s.totalSeconds || 0), 0);
-        const decHours = (totalSeconds / 3600).toFixed(2);
+        const count = state.intervals.length;
+        const avgSeconds = count > 0 ? Math.round(totalSeconds / count) : 0;
         const formattedTotal = formatDuration(totalSeconds);
+        const formattedAvg = formatDuration(avgSeconds);
 
         let report = `Format: ${state.timeFormat.toUpperCase()}\n`;
-        report += `Total Intervals: ${state.intervals.length}\n`;
-        report += `Total Duration: ${formattedTotal} (${decHours}h)\n`;
+        report += `Total Intervals: ${count}\n`;
+        report += `Total Duration: ${formattedTotal}\n`;
+        report += `Average Duration: ${formattedAvg}\n`;
         report += `════════════════════════════════════\n`;
 
         const rows = state.intervals.map((item, i) => {
-            const num = state.intervals.length - i;
+            const num = count - i;
             let range = '';
             if (item.mode === 'dates') {
                 const startDisp = formatDateDisplay(item.start);
@@ -931,11 +934,10 @@
                 const endDisp = formatTimeDisplay(item.end);
                 range = `${startDisp} — ${endDisp}${item.isNextDay ? ' (+1d)' : ''}`;
             }
-            const dec = (item.totalSeconds / 3600).toFixed(2);
             return {
                 num,
                 range,
-                duration: `${formatDuration(item.totalSeconds)} (${dec}h)`,
+                duration: formatDuration(item.totalSeconds),
             };
         });
 
