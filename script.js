@@ -901,7 +901,6 @@
                 const itemNum = count - index;
                 const decHours = (item.totalSeconds / 3600).toFixed(2);
                 const isEditing = state.editingId === item.id;
-                const editingBadge = isEditing ? '<span class="item-editing-tag">Editing</span>' : '';
 
                 let rangeText = '';
                 if (item.mode === 'dates') {
@@ -917,7 +916,7 @@
                 <div class="saved-item-row ${isEditing ? 'is-editing' : ''}" data-id="${item.id}">
                     <div class="item-left">
                         <span class="item-num">#${itemNum}</span>
-                        <div class="item-range">${rangeText} ${editingBadge}</div>
+                        <div class="item-range">${rangeText}</div>
                     </div>
                     <div class="item-right">
                         <div class="item-duration-wrap">
