@@ -117,16 +117,11 @@ body {
 }
 
 .brand-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-    border: 1px solid rgba(0, 242, 254, 0.35);
-    border-radius: var(--radius-md);
     color: var(--accent-cyan);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 16px var(--accent-cyan-glow);
+    filter: drop-shadow(0 0 8px var(--accent-cyan-glow));
 }
 
 .brand-text {

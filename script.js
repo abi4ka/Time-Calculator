@@ -358,7 +358,16 @@
     // =========================================================================
     // UI Toast Notifications
     // =========================================================================
+    const MAX_TOASTS = 3;
+
     function showToast(message, type = 'info') {
+        if (!elements.toastContainer) return;
+
+        // Limit toasts to 3 max: remove oldest toasts before adding a new one
+        while (elements.toastContainer.children.length >= MAX_TOASTS) {
+            elements.toastContainer.firstElementChild.remove();
+        }
+
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
 
@@ -372,12 +381,18 @@
         }
 
         toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
+        toast.style.cursor = 'pointer';
+        toast.title = 'Click to dismiss';
+        toast.addEventListener('click', () => toast.remove());
+
         elements.toastContainer.appendChild(toast);
 
         setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
-            setTimeout(() => toast.remove(), 250);
+            if (toast.parentElement) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 250);
+            }
         }, 2400);
     }
 
@@ -718,7 +733,6 @@
 
         updateHoursCalculation();
         renderIntervals();
-        showToast(`Format set to ${fmt.toUpperCase()}`, 'info');
     }
 
     // =========================================================================
