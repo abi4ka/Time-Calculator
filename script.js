@@ -17,6 +17,9 @@
     // =========================================================================
     const STORAGE_KEY = 'time_calculator_intervals_v2';
     const FORMAT_KEY = 'time_calculator_format';
+    const DRAFT_KEY = 'time_calculator_active_draft_v1';
+
+    let isInitializing = true;
 
     const state = {
         currentMode: 'hours', // 'hours' | 'dates'
@@ -677,6 +680,8 @@
         elements.hoursResHours.textContent = `${hoursDec} hours`;
         elements.hoursResMins.textContent = `${minsInt.toLocaleString('en-US')} mins`;
         elements.hoursResSecs.textContent = `${secsInt.toLocaleString('en-US')} secs`;
+
+        saveDraftState();
     }
 
     function updateDatesCalculation() {
@@ -694,6 +699,7 @@
             elements.datesResWeekends.textContent = '0d';
             elements.datesResWorkdays.removeAttribute('title');
             elements.datesResWeekends.removeAttribute('title');
+            saveDraftState();
             return;
         }
 
@@ -711,6 +717,8 @@
         elements.datesResWeekends.textContent = res.weekends;
         elements.datesResWorkdays.title = formatDuration(res.workdaySeconds, true);
         elements.datesResWeekends.title = formatDuration(res.weekendSeconds, true);
+
+        saveDraftState();
     }
 
     function adjustTime(target, deltaMins) {
@@ -805,6 +813,98 @@
 
         updateHoursCalculation();
         renderIntervals();
+    }
+
+    // =========================================================================
+    // Active Input Draft Persistence
+    // =========================================================================
+    function saveDraftState() {
+        if (isInitializing) return;
+        try {
+            const draft = {
+                currentMode: state.currentMode,
+                hours: {
+                    start: getStartTime24(),
+                    end: getEndTime24(),
+                    userOvernightForced: Boolean(state.userOvernightForced),
+                },
+                dates: {
+                    startDate: elements.datesStartD ? elements.datesStartD.value : '',
+                    startTime: (elements.datesStartH && elements.datesStartM && elements.datesStartPeriod)
+                        ? getTimePickerValue(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod)
+                        : '10:00',
+                    endDate: elements.datesEndD ? elements.datesEndD.value : '',
+                    endTime: (elements.datesEndH && elements.datesEndM && elements.datesEndPeriod)
+                        ? getTimePickerValue(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod)
+                        : '18:00',
+                },
+            };
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        } catch (e) {
+            console.error('Error saving draft state to LocalStorage:', e);
+        }
+    }
+
+    function restoreDraftState() {
+        try {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return false;
+            const draft = JSON.parse(raw);
+            if (!draft || typeof draft !== 'object') return false;
+
+            // Restore Hours mode settings
+            if (draft.hours) {
+                if (draft.hours.start) {
+                    setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, draft.hours.start);
+                }
+                if (draft.hours.end) {
+                    setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, draft.hours.end);
+                }
+                if (typeof draft.hours.userOvernightForced === 'boolean') {
+                    state.userOvernightForced = draft.hours.userOvernightForced;
+                }
+            }
+
+            // Restore Dates mode settings
+            if (draft.dates) {
+                if (draft.dates.startDate && elements.datesStartD) {
+                    elements.datesStartD.value = draft.dates.startDate;
+                }
+                if (draft.dates.startTime && elements.datesStartH && elements.datesStartM && elements.datesStartPeriod) {
+                    setTimePickerValue(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod, draft.dates.startTime);
+                }
+                if (draft.dates.endDate && elements.datesEndD) {
+                    elements.datesEndD.value = draft.dates.endDate;
+                }
+                if (draft.dates.endTime && elements.datesEndH && elements.datesEndM && elements.datesEndPeriod) {
+                    setTimePickerValue(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod, draft.dates.endTime);
+                }
+            }
+
+            // Restore Mode Tab selection
+            if (draft.currentMode === 'dates') {
+                state.currentMode = 'dates';
+                elements.tabDates.classList.add('active');
+                elements.tabDates.setAttribute('aria-selected', 'true');
+                elements.tabHours.classList.remove('active');
+                elements.tabHours.setAttribute('aria-selected', 'false');
+                elements.modeDatesView.classList.remove('hidden');
+                elements.modeHoursView.classList.add('hidden');
+            } else {
+                state.currentMode = 'hours';
+                elements.tabHours.classList.add('active');
+                elements.tabHours.setAttribute('aria-selected', 'true');
+                elements.tabDates.classList.remove('active');
+                elements.tabDates.setAttribute('aria-selected', 'false');
+                elements.modeHoursView.classList.remove('hidden');
+                elements.modeDatesView.classList.add('hidden');
+            }
+
+            return true;
+        } catch (e) {
+            console.error('Error restoring draft state from LocalStorage:', e);
+            return false;
+        }
     }
 
     // =========================================================================
@@ -1276,7 +1376,9 @@
 
         // Mode 2: Dates inputs
         elements.datesStartD.addEventListener('input', updateDatesCalculation);
+        elements.datesStartD.addEventListener('change', updateDatesCalculation);
         elements.datesEndD.addEventListener('input', updateDatesCalculation);
+        elements.datesEndD.addEventListener('change', updateDatesCalculation);
 
         elements.btnDateStartNow.addEventListener('click', () => {
             setDatesStartDateTime(new Date());
@@ -1391,25 +1493,42 @@
             elements.btnFormat12h.classList.remove('active');
         }
 
-        // Initialize pickers with default 24h times
-        setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, '10:00');
-        setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, '11:30');
-
         initLiveClock();
 
-        const now = new Date();
-        const future = new Date();
-        future.setDate(future.getDate() + 3);
-        future.setHours(18, 0, 0, 0);
+        const restored = restoreDraftState();
+        if (!restored) {
+            // First visit: Initialize pickers with default times
+            setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, '10:00');
+            setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, '11:30');
 
-        setDatesStartDateTime(now);
-        setDatesEndDateTime(future);
+            const now = new Date();
+            const future = new Date();
+            future.setDate(future.getDate() + 3);
+            future.setHours(18, 0, 0, 0);
+
+            setDatesStartDateTime(now);
+            setDatesEndDateTime(future);
+        } else {
+            // In case of incomplete draft date values, ensure sensible defaults
+            if (!elements.datesStartD.value) {
+                setDatesStartDateTime(new Date());
+            }
+            if (!elements.datesEndD.value) {
+                const future = new Date();
+                future.setDate(future.getDate() + 3);
+                future.setHours(18, 0, 0, 0);
+                setDatesEndDateTime(future);
+            }
+        }
 
         loadIntervals();
         setupEventListeners();
         updateHoursCalculation();
         updateDatesCalculation();
         renderIntervals();
+
+        isInitializing = false;
+        saveDraftState();
     }
 
     if (document.readyState === 'loading') {
