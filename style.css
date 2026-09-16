@@ -168,24 +168,51 @@ body {
     font-family: var(--font-mono);
     border: 1px solid transparent;
     transition: var(--transition);
+    cursor: pointer;
+    user-select: none;
+}
+
+.badge:hover {
+    transform: translateY(-1px);
+}
+
+.badge:active {
+    transform: translateY(0);
 }
 
 .status-dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
+    transition: var(--transition);
 }
 
-.badge-valid {
+/* Live Function Active: glows green ("зелёным как сейчас") */
+.badge-valid,
+.badge-live-on {
     background: rgba(16, 185, 129, 0.12);
     border-color: rgba(16, 185, 129, 0.3);
     color: #34d399;
     box-shadow: 0 0 12px var(--accent-emerald-glow);
 }
-.badge-valid .status-dot {
+.badge-valid .status-dot,
+.badge-live-on .status-dot {
     background: #10b981;
     box-shadow: 0 0 8px #10b981;
-    animation: pulseDot 2s infinite ease-in-out;
+    animation: pulseDot 1.8s infinite ease-in-out;
+}
+
+/* Live Function Disabled: glows blue/light-blue ("синим/голубым") */
+.badge-live-off {
+    background: rgba(0, 242, 254, 0.08);
+    border-color: rgba(0, 242, 254, 0.25);
+    color: #38bdf8;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+}
+.badge-live-off .status-dot {
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    opacity: 0.9;
 }
 
 @keyframes pulseDot {
@@ -737,6 +764,66 @@ body {
     padding: 2px 6px;
     border-radius: 4px;
     letter-spacing: 0.8px;
+}
+
+/* Interactive LIVE Button */
+.result-live-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.64rem;
+    font-weight: 800;
+    font-family: var(--font-ui);
+    color: var(--accent-cyan);
+    background: rgba(0, 242, 254, 0.08);
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 242, 254, 0.28);
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    line-height: 1;
+}
+
+.result-live-btn:hover {
+    background: rgba(0, 242, 254, 0.18);
+    border-color: rgba(0, 242, 254, 0.55);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+    transform: translateY(-1px);
+}
+
+.result-live-btn:active {
+    transform: translateY(0);
+}
+
+.result-live-btn .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 5px var(--accent-cyan);
+    transition: var(--transition);
+}
+
+/* Active Live Mode: glowing green */
+.result-live-btn.is-active {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.16);
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 0 12px var(--accent-emerald-glow);
+}
+
+.result-live-btn.is-active:hover {
+    background: rgba(16, 185, 129, 0.24);
+    border-color: rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+}
+
+.result-live-btn.is-active .live-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulseDot 1.5s infinite ease-in-out;
 }
 
 .result-main-value {

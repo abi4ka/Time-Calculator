@@ -54,7 +54,7 @@
 
             <!-- Global Status & Live Time -->
             <div class="nav-center">
-                <div id="status-badge" class="badge badge-valid">
+                <div id="status-badge" class="badge badge-live-off" title="Live timer mode is off — Click to toggle" role="button" tabindex="0">
                     <span class="status-dot"></span>
                     <span id="current-clock">00:00:00</span>
                 </div>
@@ -201,7 +201,10 @@
                             <div class="live-result-banner">
                                 <div class="result-banner-header">
                                     <span class="result-label">CALCULATED DURATION</span>
-                                    <span class="result-live-pill">LIVE</span>
+                                    <button type="button" id="btn-live-hours" class="result-live-btn" title="Toggle live timer mode (auto-updates End Time)" aria-label="Toggle live timer mode" aria-pressed="false">
+                                        <span class="live-dot"></span>
+                                        <span class="live-text">LIVE</span>
+                                    </button>
                                 </div>
                                 <div class="result-main-value">
                                     <span id="hours-res-primary" class="duration-glow">1h 30m</span>
@@ -311,7 +314,10 @@
                             <div class="live-result-banner">
                                 <div class="result-banner-header">
                                     <span class="result-label">DATE DIFFERENCE</span>
-                                    <span class="result-live-pill">LIVE</span>
+                                    <button type="button" id="btn-live-dates" class="result-live-btn" title="Toggle live timer mode (auto-updates End Time)" aria-label="Toggle live timer mode" aria-pressed="false">
+                                        <span class="live-dot"></span>
+                                        <span class="live-text">LIVE</span>
+                                    </button>
                                 </div>
                                 <div class="result-main-value">
                                     <span id="dates-res-primary" class="duration-glow">0d 0h 0m</span>

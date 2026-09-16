@@ -27,6 +27,7 @@
         intervals: [],
         editingId: null,
         userOvernightForced: false,
+        isLive: false,
     };
 
     // =========================================================================
@@ -34,6 +35,7 @@
     // =========================================================================
     const elements = {
         // Clock & Quick Stats
+        statusBadge: document.getElementById('status-badge'),
         currentClock: document.getElementById('current-clock'),
         statCount: document.getElementById('stat-count'),
         statTotalQuick: document.getElementById('stat-total-quick'),
@@ -62,6 +64,7 @@
         btnCancelHoursEdit: document.getElementById('btn-cancel-hours-edit'),
 
         // Mode 1 Live Results
+        btnLiveHours: document.getElementById('btn-live-hours'),
         hoursResPrimary: document.getElementById('hours-res-primary'),
         hoursResDays: document.getElementById('hours-res-days'),
         hoursResHours: document.getElementById('hours-res-hours'),
@@ -84,6 +87,7 @@
         btnCancelDatesEdit: document.getElementById('btn-cancel-dates-edit'),
 
         // Mode 2 Live Results
+        btnLiveDates: document.getElementById('btn-live-dates'),
         datesResPrimary: document.getElementById('dates-res-primary'),
         datesResDays: document.getElementById('dates-res-days'),
         datesResHours: document.getElementById('dates-res-hours'),
@@ -210,8 +214,9 @@
     /**
      * Format duration in seconds into "Xh Ym", "Ym", or "Xs"
      * If includeDays is true, formats into "Xd Yh Zm" (e.g. for Dates mode)
+     * If showLiveSeconds is true, includes ticking seconds for real-time timer display
      */
-    function formatDuration(seconds, includeDays = false) {
+    function formatDuration(seconds, includeDays = false, showLiveSeconds = false) {
         if (!seconds || seconds <= 0) return includeDays ? '0d\u00A00h\u00A00m' : '0m';
         const totalMins = Math.floor(seconds / 60);
         const mins = totalMins % 60;
@@ -221,11 +226,22 @@
         if (includeDays) {
             const days = Math.floor(totalHours / 24);
             const hours = totalHours % 24;
+            if (showLiveSeconds) {
+                return `${days}d\u00A0${hours}h\u00A0${mins}m\u00A0${secs}s`;
+            }
             return `${days}d\u00A0${hours}h\u00A0${mins}m`;
         }
 
         const hours = totalHours;
         const parts = [];
+
+        if (showLiveSeconds) {
+            if (hours > 0) parts.push(`${hours}h`);
+            if (mins > 0 || hours > 0) parts.push(`${mins}m`);
+            parts.push(`${secs}s`);
+            return parts.join('\u00A0') || '0s';
+        }
+
         if (hours > 0) parts.push(`${hours}h`);
         if (mins > 0 || (hours === 0 && secs === 0)) parts.push(`${mins}m`);
         if (secs > 0 && hours === 0 && mins < 5) parts.push(`${secs}s`);
@@ -306,7 +322,7 @@
     /**
      * Calculate difference between two hours of the day
      */
-    function calculateHoursDiff(startStr, endStr, forceNextDay = false) {
+    function calculateHoursDiff(startStr, endStr, forceNextDay = false, currentSeconds = 0) {
         const startMins = parseTimeToMinutes(startStr);
         let endMins = parseTimeToMinutes(endStr);
 
@@ -320,12 +336,12 @@
         }
 
         const diffMins = Math.max(0, endMins - startMins);
-        const totalSeconds = diffMins * 60;
+        const totalSeconds = diffMins * 60 + (currentSeconds || 0);
 
         return {
             diffMins,
             totalSeconds,
-            decimalHours: (diffMins / 60).toFixed(2),
+            decimalHours: (totalSeconds / 3600).toFixed(2),
             isNextDay,
         };
     }
@@ -333,7 +349,7 @@
     /**
      * Calculate difference between two dates
      */
-    function calculateDatesDiff(startDateStr, endDateStr) {
+    function calculateDatesDiff(startDateStr, endDateStr, currentSeconds = 0) {
         if (!startDateStr || !endDateStr) {
             return {
                 totalSeconds: 0,
@@ -349,6 +365,9 @@
 
         const start = new Date(startDateStr);
         const end = new Date(endDateStr);
+        if (currentSeconds > 0) {
+            end.setSeconds(currentSeconds);
+        }
         const diffMs = end.getTime() - start.getTime();
 
         if (isNaN(diffMs) || diffMs < 0) {
@@ -466,8 +485,74 @@
     }
 
     // =========================================================================
-    // Live Clock (Respects 24H / 12H)
     // =========================================================================
+    // Live Timer Mode Controller & Clock
+    // =========================================================================
+    function updateLiveModeUI() {
+        const isLive = Boolean(state.isLive);
+        [elements.btnLiveHours, elements.btnLiveDates].forEach((btn) => {
+            if (!btn) return;
+            if (isLive) {
+                btn.classList.add('is-active');
+                btn.setAttribute('aria-pressed', 'true');
+                btn.title = 'Live timer mode active (End Time auto-updating). Click to stop';
+            } else {
+                btn.classList.remove('is-active');
+                btn.setAttribute('aria-pressed', 'false');
+                btn.title = 'Click to activate Live Timer (auto-updates End Time)';
+            }
+        });
+
+        if (elements.statusBadge) {
+            if (isLive) {
+                elements.statusBadge.className = 'badge badge-live-on';
+                elements.statusBadge.title = 'Live mode is ON — End time is auto-counting (Click to toggle)';
+            } else {
+                elements.statusBadge.className = 'badge badge-live-off';
+                elements.statusBadge.title = 'Live mode is OFF — Click LIVE button to start (Click to toggle)';
+            }
+        }
+    }
+
+    function syncEndTimeToCurrent(currentSeconds = 0) {
+        const now = new Date();
+        const secs = currentSeconds !== undefined ? currentSeconds : now.getSeconds();
+        if (state.currentMode === 'hours') {
+            setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, getCurrentTimeString());
+            updateHoursCalculation(secs);
+        } else {
+            setDatesEndDateTime(now);
+            updateDatesCalculation(secs);
+        }
+    }
+
+    function setLiveMode(active, showFeedback = true) {
+        const wasLive = Boolean(state.isLive);
+        state.isLive = Boolean(active);
+        updateLiveModeUI();
+
+        if (state.isLive) {
+            syncEndTimeToCurrent(new Date().getSeconds());
+            if (showFeedback && !wasLive) {
+                showToast('Live timer started: End time is continuously updating', 'info');
+            }
+        } else {
+            if (state.currentMode === 'hours') {
+                updateHoursCalculation(0);
+            } else {
+                updateDatesCalculation(0);
+            }
+            if (showFeedback && wasLive) {
+                showToast('Live timer stopped', 'info');
+            }
+        }
+        saveDraftState();
+    }
+
+    function toggleLiveMode() {
+        setLiveMode(!state.isLive, true);
+    }
+
     function initLiveClock() {
         const updateClock = () => {
             const now = new Date();
@@ -482,6 +567,17 @@
                 if (hours === 0) hours = 12;
                 elements.currentClock.textContent = `${pad(hours)}:${pad(now.getMinutes())}:${pad(now.getSeconds())} ${period}`;
             }
+
+            // Real-time timer auto-update when Live mode is active
+            if (state.isLive) {
+                if (state.currentMode === 'hours') {
+                    setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, getCurrentTimeString());
+                    updateHoursCalculation(now.getSeconds());
+                } else if (state.currentMode === 'dates') {
+                    setDatesEndDateTime(now);
+                    updateDatesCalculation(now.getSeconds());
+                }
+            }
         };
         updateClock();
         setInterval(updateClock, 1000);
@@ -490,8 +586,13 @@
     // =========================================================================
     // Custom Time Picker Digit Input Event Handler
     // =========================================================================
-    function setupCustomTimePicker(hEl, mEl, pEl, onUpdate) {
+    function setupCustomTimePicker(hEl, mEl, pEl, onUpdate, onManualEdit) {
         const pad = (n) => String(n).padStart(2, '0');
+        const notifyManual = () => {
+            if (typeof onManualEdit === 'function') {
+                onManualEdit();
+            }
+        };
 
         // Focus selection
         hEl.addEventListener('focus', () => hEl.select());
@@ -499,6 +600,7 @@
 
         // Hours typing
         hEl.addEventListener('input', () => {
+            notifyManual();
             let val = hEl.value.replace(/\D/g, '');
             if (val.length === 0) {
                 onUpdate();
@@ -524,6 +626,7 @@
 
         // Minutes typing
         mEl.addEventListener('input', () => {
+            notifyManual();
             let val = mEl.value.replace(/\D/g, '');
             if (val.length === 0) {
                 onUpdate();
@@ -571,6 +674,7 @@
                 mEl.select();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
+                notifyManual();
                 let val = (parseInt(hEl.value, 10) || 0) + 1;
                 const max = state.timeFormat === '24h' ? 23 : 12;
                 const min = state.timeFormat === '24h' ? 0 : 1;
@@ -579,6 +683,7 @@
                 onUpdate();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
+                notifyManual();
                 let val = (parseInt(hEl.value, 10) || 0) - 1;
                 const max = state.timeFormat === '24h' ? 23 : 12;
                 const min = state.timeFormat === '24h' ? 0 : 1;
@@ -595,6 +700,7 @@
                 hEl.select();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
+                notifyManual();
                 const step = e.shiftKey ? 5 : 1;
                 let val = (parseInt(mEl.value, 10) || 0) + step;
                 if (val > 59) val = 0;
@@ -602,6 +708,7 @@
                 onUpdate();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
+                notifyManual();
                 const step = e.shiftKey ? 5 : 1;
                 let val = (parseInt(mEl.value, 10) || 0) - step;
                 if (val < 0) val = 59;
@@ -613,6 +720,7 @@
         // Mouse wheel adjustment
         const handleWheel = (input, isHour, e) => {
             e.preventDefault();
+            notifyManual();
             const delta = e.deltaY < 0 ? 1 : -1;
             let val = parseInt(input.value, 10) || 0;
             if (isHour) {
@@ -635,6 +743,7 @@
 
         // Period toggle (AM / PM)
         pEl.addEventListener('click', () => {
+            notifyManual();
             pEl.textContent = pEl.textContent === 'AM' ? 'PM' : 'AM';
             onUpdate();
         });
@@ -643,7 +752,7 @@
     // =========================================================================
     // Live Calculation Updates
     // =========================================================================
-    function updateHoursCalculation() {
+    function updateHoursCalculation(currentSeconds = 0) {
         const start = getStartTime24();
         const end = getEndTime24();
         const startMins = parseTimeToMinutes(start);
@@ -662,7 +771,7 @@
         }
 
         const forceNextDay = elements.checkNextDay.checked;
-        const res = calculateHoursDiff(start, end, forceNextDay);
+        const res = calculateHoursDiff(start, end, forceNextDay, state.isLive ? currentSeconds : 0);
 
         if (res.isNextDay) {
             elements.midnightIndicator.classList.remove('hidden');
@@ -675,7 +784,7 @@
         const minsInt = Math.floor(res.totalSeconds / 60);
         const secsInt = res.totalSeconds;
 
-        elements.hoursResPrimary.textContent = formatDuration(res.totalSeconds);
+        elements.hoursResPrimary.textContent = formatDuration(res.totalSeconds, false, state.isLive);
         elements.hoursResDays.textContent = `${daysDec} days`;
         elements.hoursResHours.textContent = `${hoursDec} hours`;
         elements.hoursResMins.textContent = `${minsInt.toLocaleString('en-US')} mins`;
@@ -684,10 +793,10 @@
         saveDraftState();
     }
 
-    function updateDatesCalculation() {
+    function updateDatesCalculation(currentSeconds = 0) {
         const start = getDatesStartDateTime();
         const end = getDatesEndDateTime();
-        const res = calculateDatesDiff(start, end);
+        const res = calculateDatesDiff(start, end, state.isLive ? currentSeconds : 0);
 
         if (res.invalid) {
             elements.datesResPrimary.textContent = 'End date is before start date';
@@ -708,7 +817,7 @@
         const minsInt = Math.floor(res.totalSeconds / 60);
         const secsInt = res.totalSeconds;
 
-        elements.datesResPrimary.textContent = formatDuration(res.totalSeconds, true);
+        elements.datesResPrimary.textContent = formatDuration(res.totalSeconds, true, state.isLive);
         elements.datesResDays.textContent = `${daysDec} days`;
         elements.datesResHours.textContent = `${hoursDec} hours`;
         elements.datesResMins.textContent = `${minsInt.toLocaleString('en-US')} mins`;
@@ -733,6 +842,7 @@
             setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, `${hh}:${mm}`);
             updateHoursCalculation();
         } else if (target === 'end') {
+            if (state.isLive) setLiveMode(false, false);
             const startMins = parseTimeToMinutes(getStartTime24());
             let endMins = parseTimeToMinutes(getEndTime24());
             const isNextDay = elements.checkNextDay.checked || (endMins < startMins);
@@ -766,6 +876,7 @@
                 updateDatesCalculation();
             }
         } else if (target === 'dates-end') {
+            if (state.isLive) setLiveMode(false, false);
             const curr = getDatesEndDateTime();
             if (curr) {
                 const d = new Date(curr);
@@ -838,6 +949,7 @@
                         ? getTimePickerValue(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod)
                         : '18:00',
                 },
+                isLive: Boolean(state.isLive),
             };
             localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
         } catch (e) {
@@ -851,6 +963,10 @@
             if (!raw) return false;
             const draft = JSON.parse(raw);
             if (!draft || typeof draft !== 'object') return false;
+
+            if (typeof draft.isLive === 'boolean') {
+                state.isLive = draft.isLive;
+            }
 
             // Restore Hours mode settings
             if (draft.hours) {
@@ -1184,6 +1300,7 @@
         const item = state.intervals.find((s) => s.id === id);
         if (!item) return;
 
+        if (state.isLive) setLiveMode(false, false);
         state.editingId = id;
 
         if (item.mode === 'dates') {
@@ -1284,7 +1401,13 @@
 
                 elements.modeHoursView.classList.remove('hidden');
                 elements.modeDatesView.classList.add('hidden');
-                updateHoursCalculation();
+
+                if (state.isLive) {
+                    setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, getCurrentTimeString());
+                    updateHoursCalculation(new Date().getSeconds());
+                } else {
+                    updateHoursCalculation();
+                }
             }
         });
 
@@ -1301,7 +1424,13 @@
 
                 elements.modeDatesView.classList.remove('hidden');
                 elements.modeHoursView.classList.add('hidden');
-                updateDatesCalculation();
+
+                if (state.isLive) {
+                    setDatesEndDateTime(new Date());
+                    updateDatesCalculation(new Date().getSeconds());
+                } else {
+                    updateDatesCalculation();
+                }
             }
         });
 
@@ -1309,11 +1438,28 @@
         elements.btnFormat24h.addEventListener('click', () => setTimeFormat('24h'));
         elements.btnFormat12h.addEventListener('click', () => setTimeFormat('12h'));
 
+        // LIVE Buttons & Top Badge toggle
+        if (elements.btnLiveHours) elements.btnLiveHours.addEventListener('click', toggleLiveMode);
+        if (elements.btnLiveDates) elements.btnLiveDates.addEventListener('click', toggleLiveMode);
+        if (elements.statusBadge) {
+            elements.statusBadge.addEventListener('click', toggleLiveMode);
+            elements.statusBadge.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleLiveMode();
+                }
+            });
+        }
+
         // Custom Time Pickers
         setupCustomTimePicker(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, updateHoursCalculation);
-        setupCustomTimePicker(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, updateHoursCalculation);
+        setupCustomTimePicker(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, updateHoursCalculation, () => {
+            if (state.isLive) setLiveMode(false, false);
+        });
         setupCustomTimePicker(elements.datesStartH, elements.datesStartM, elements.datesStartPeriod, updateDatesCalculation);
-        setupCustomTimePicker(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod, updateDatesCalculation);
+        setupCustomTimePicker(elements.datesEndH, elements.datesEndM, elements.datesEndPeriod, updateDatesCalculation, () => {
+            if (state.isLive) setLiveMode(false, false);
+        });
 
         elements.checkNextDay.addEventListener('change', () => {
             state.userOvernightForced = elements.checkNextDay.checked;
@@ -1377,8 +1523,14 @@
         // Mode 2: Dates inputs
         elements.datesStartD.addEventListener('input', updateDatesCalculation);
         elements.datesStartD.addEventListener('change', updateDatesCalculation);
-        elements.datesEndD.addEventListener('input', updateDatesCalculation);
-        elements.datesEndD.addEventListener('change', updateDatesCalculation);
+        elements.datesEndD.addEventListener('input', () => {
+            if (state.isLive) setLiveMode(false, false);
+            updateDatesCalculation();
+        });
+        elements.datesEndD.addEventListener('change', () => {
+            if (state.isLive) setLiveMode(false, false);
+            updateDatesCalculation();
+        });
 
         elements.btnDateStartNow.addEventListener('click', () => {
             setDatesStartDateTime(new Date());
@@ -1523,8 +1675,13 @@
 
         loadIntervals();
         setupEventListeners();
-        updateHoursCalculation();
-        updateDatesCalculation();
+        setLiveMode(state.isLive, false);
+        if (state.isLive) {
+            syncEndTimeToCurrent(new Date().getSeconds());
+        } else {
+            updateHoursCalculation();
+            updateDatesCalculation();
+        }
         renderIntervals();
 
         isInitializing = false;
