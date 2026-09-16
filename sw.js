@@ -1,5 +1,5 @@
 // Service Worker for Time Calculator PWA
-const CACHE_NAME = 'time-calculator-v5';
+const CACHE_NAME = 'time-calculator-v6';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

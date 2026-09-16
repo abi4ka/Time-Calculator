@@ -526,31 +526,24 @@
         }
     }
 
-    function setLiveMode(active, showFeedback = true) {
-        const wasLive = Boolean(state.isLive);
+    function setLiveMode(active) {
         state.isLive = Boolean(active);
         updateLiveModeUI();
 
         if (state.isLive) {
             syncEndTimeToCurrent(new Date().getSeconds());
-            if (showFeedback && !wasLive) {
-                showToast('Live timer started: End time is continuously updating', 'info');
-            }
         } else {
             if (state.currentMode === 'hours') {
                 updateHoursCalculation(0);
             } else {
                 updateDatesCalculation(0);
             }
-            if (showFeedback && wasLive) {
-                showToast('Live timer stopped', 'info');
-            }
         }
         saveDraftState();
     }
 
     function toggleLiveMode() {
-        setLiveMode(!state.isLive, true);
+        setLiveMode(!state.isLive);
     }
 
     function initLiveClock() {
