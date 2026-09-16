@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.2">
 </head>
 <body>
     <!-- Ambient Background Glow Orbs -->
@@ -444,13 +444,24 @@
         <input type="file" id="file-import" accept=".json" class="hidden">
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2.2"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('PWA ServiceWorker registered:', reg.scope))
+                    .then((reg) => {
+                        console.log('PWA ServiceWorker registered:', reg.scope);
+                        reg.update();
+                    })
                     .catch((err) => console.error('PWA ServiceWorker failed:', err));
+
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!refreshing) {
+                        refreshing = true;
+                        window.location.reload();
+                    }
+                });
             });
         }
     </script>
