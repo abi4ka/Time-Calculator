@@ -2,6 +2,9 @@
 
 A fast, private, client-side time interval calculator and cumulative duration tracker with real-time statistics and offline PWA support.
 
+<img width="2557" height="1087" alt="image" src="https://github.com/user-attachments/assets/3d1c1103-df9d-4f38-9b94-62fedafc366a" />
+
+
 ## Features
 
 - **Dual Calculation Modes**: Calculate precise duration between times of day or across multiple calendar dates.
