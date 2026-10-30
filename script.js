@@ -387,22 +387,34 @@
         const totalHours = Math.floor(totalSeconds / 3600);
         const totalDays = Math.floor(totalHours / 24);
 
+        // Business/weekend split runs on wall-clock time (every calendar day counts as 24h),
+        // so DST shifts inside the range don't turn whole days into fractions
+        const toWallClock = (d) => {
+            const wall = new Date(0);
+            wall.setUTCFullYear(d.getFullYear(), d.getMonth(), d.getDate());
+            wall.setUTCHours(d.getHours(), d.getMinutes(), d.getSeconds(), 0);
+            return wall;
+        };
+        const wallStart = toWallClock(start);
+        const wallEnd = toWallClock(end);
+        const wallSeconds = Math.max(0, Math.floor((wallEnd.getTime() - wallStart.getTime()) / 1000));
+
         // O(1) analytical calculation of full weeks (7 days = 5 workdays + 2 weekend days)
-        const fullWeeks = Math.floor(totalSeconds / (7 * 86400));
+        const fullWeeks = Math.floor(wallSeconds / (7 * 86400));
         const fullWeekWeekendSeconds = fullWeeks * 2 * 86400;
 
         let weekendRemainderSeconds = 0;
-        let cur = new Date(start.getTime() + fullWeeks * 7 * 86400 * 1000);
+        let cur = new Date(wallStart.getTime() + fullWeeks * 7 * 86400 * 1000);
 
         // At most 7 slice iterations for remainder period to avoid freezing on large year gaps
-        while (cur < end) {
+        while (cur < wallEnd) {
             const nextMidnight = new Date(cur);
-            nextMidnight.setHours(24, 0, 0, 0);
+            nextMidnight.setUTCHours(24, 0, 0, 0);
 
-            const sliceEnd = nextMidnight < end ? nextMidnight : end;
+            const sliceEnd = nextMidnight < wallEnd ? nextMidnight : wallEnd;
             const sliceSeconds = Math.max(0, Math.floor((sliceEnd.getTime() - cur.getTime()) / 1000));
 
-            const dayOfWeek = cur.getDay(); // 0 is Sun, 6 is Sat
+            const dayOfWeek = cur.getUTCDay(); // 0 is Sun, 6 is Sat
             if (dayOfWeek === 0 || dayOfWeek === 6) {
                 weekendRemainderSeconds += sliceSeconds;
             }
@@ -411,7 +423,7 @@
         }
 
         const totalWeekendSeconds = fullWeekWeekendSeconds + weekendRemainderSeconds;
-        const totalWorkdaySeconds = Math.max(0, totalSeconds - totalWeekendSeconds);
+        const totalWorkdaySeconds = Math.max(0, wallSeconds - totalWeekendSeconds);
 
         const formatDays = (seconds) => {
             if (!seconds || seconds <= 0) return '0d';
