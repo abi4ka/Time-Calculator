@@ -824,41 +824,46 @@
     }
 
     function adjustTime(target, deltaMins) {
-        if (target === 'start') {
-            let startMins = parseTimeToMinutes(getStartTime24());
-            startMins += deltaMins;
-            startMins = ((startMins % 1440) + 1440) % 1440;
-
+        if (target === 'start' || target === 'end') {
+            // Clamp instead of wrapping around midnight: the end stays within [start, 23:59 of the next day]
+            const DAY_MINS = 24 * 60;
             const pad = (n) => String(n).padStart(2, '0');
-            const hh = pad(Math.floor(startMins / 60));
-            const mm = pad(startMins % 60);
-            setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, `${hh}:${mm}`);
-            updateHoursCalculation();
-        } else if (target === 'end') {
-            if (state.isLive) setLiveMode(false, false);
-            const startMins = parseTimeToMinutes(getStartTime24());
-            let endMins = parseTimeToMinutes(getEndTime24());
+            const toTimeStr = (mins) => `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
+
+            let startMins = parseTimeToMinutes(getStartTime24());
+            const endMins = parseTimeToMinutes(getEndTime24());
             const isNextDay = elements.checkNextDay.checked || (endMins < startMins);
+            let totalEndMins = endMins + (isNextDay ? DAY_MINS : 0);
 
-            let totalEndMins = endMins + (isNextDay ? 24 * 60 : 0);
-            totalEndMins += deltaMins;
-
-            if (totalEndMins < 0) {
-                totalEndMins = ((totalEndMins % 1440) + 1440) % 1440;
-                state.userOvernightForced = false;
-                endMins = totalEndMins;
-            } else if (totalEndMins >= 24 * 60) {
-                endMins = totalEndMins % (24 * 60);
-                state.userOvernightForced = (endMins >= startMins);
+            if (target === 'start') {
+                const maxStart = Math.min(DAY_MINS - 1, totalEndMins);
+                const wanted = startMins + deltaMins;
+                startMins = Math.min(maxStart, Math.max(0, wanted));
+                if (wanted < 0) {
+                    showToast('Start time can\'t go before 00:00', 'info');
+                } else if (wanted > maxStart) {
+                    showToast(maxStart === totalEndMins
+                        ? 'Start time can\'t go past the end time'
+                        : 'Start time can\'t go past 23:59', 'info');
+                }
             } else {
-                state.userOvernightForced = false;
-                endMins = totalEndMins;
+                if (state.isLive) setLiveMode(false, false);
+                const maxEnd = 2 * DAY_MINS - 1;
+                const wanted = totalEndMins + deltaMins;
+                totalEndMins = Math.min(maxEnd, Math.max(startMins, wanted));
+                if (wanted < startMins) {
+                    showToast('End time can\'t go before the start time', 'info');
+                } else if (wanted > maxEnd) {
+                    showToast('End time can\'t go past 23:59 of the next day', 'info');
+                }
             }
 
-            const pad = (n) => String(n).padStart(2, '0');
-            const hh = pad(Math.floor(endMins / 60));
-            const mm = pad(endMins % 60);
-            setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, `${hh}:${mm}`);
+            // End past midnight: keep it on the next day (forced only when not already implied by end < start)
+            const newEndMins = totalEndMins % DAY_MINS;
+            state.userOvernightForced = totalEndMins >= DAY_MINS && newEndMins >= startMins;
+
+            setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, toTimeStr(startMins));
+            setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, toTimeStr(newEndMins));
             updateHoursCalculation();
         } else if (target === 'dates-start') {
             const curr = getDatesStartDateTime();
