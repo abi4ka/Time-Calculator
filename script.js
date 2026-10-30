@@ -19,11 +19,35 @@
     const FORMAT_KEY = 'time_calculator_format';
     const DRAFT_KEY = 'time_calculator_active_draft_v1';
 
+    /**
+     * Safe localStorage access: blocked site data or private modes make any call throw,
+     * which must never stop the calculator from working (data just won't persist)
+     */
+    const storage = {
+        blocked: false,
+        get(key) {
+            try {
+                return window.localStorage.getItem(key);
+            } catch (e) {
+                storage.blocked = true;
+                return null;
+            }
+        },
+        set(key, value) {
+            try {
+                window.localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        },
+    };
+
     let isInitializing = true;
 
     const state = {
         currentMode: 'hours', // 'hours' | 'dates'
-        timeFormat: localStorage.getItem(FORMAT_KEY) || '24h', // default 24h for European preference
+        timeFormat: storage.get(FORMAT_KEY) === '12h' ? '12h' : '24h', // default 24h for European preference
         intervals: [],
         editingId: null,
         userOvernightForced: false,
@@ -920,7 +944,7 @@
             : null;
 
         state.timeFormat = fmt;
-        localStorage.setItem(FORMAT_KEY, fmt);
+        storage.set(FORMAT_KEY, fmt);
 
         if (fmt === '24h') {
             elements.btnFormat24h.classList.add('active');
@@ -969,7 +993,7 @@
                 },
                 isLive: Boolean(state.isLive),
             };
-            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            storage.set(DRAFT_KEY, JSON.stringify(draft));
         } catch (e) {
             console.error('Error saving draft state to LocalStorage:', e);
         }
@@ -977,7 +1001,7 @@
 
     function restoreDraftState() {
         try {
-            const raw = localStorage.getItem(DRAFT_KEY);
+            const raw = storage.get(DRAFT_KEY);
             if (!raw) return false;
             const draft = JSON.parse(raw);
             if (!draft || typeof draft !== 'object') return false;
@@ -1084,7 +1108,7 @@
 
     function loadIntervals() {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
+            const raw = storage.get(STORAGE_KEY);
             if (raw) {
                 // Also repairs data saved by older versions that accepted any imported JSON
                 state.intervals = normalizeIntervals(JSON.parse(raw));
@@ -1098,10 +1122,7 @@
     }
 
     function saveIntervals() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.intervals));
-        } catch (e) {
-            console.error('Error saving intervals to LocalStorage:', e);
+        if (!storage.set(STORAGE_KEY, JSON.stringify(state.intervals))) {
             showToast('Failed to save to browser storage', 'error');
         }
         renderIntervals();
@@ -1820,6 +1841,10 @@
 
         isInitializing = false;
         saveDraftState();
+
+        if (storage.blocked) {
+            showToast('Browser storage is blocked: saved intervals won\'t be kept after reload', 'error');
+        }
     }
 
     if (document.readyState === 'loading') {
