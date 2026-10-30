@@ -41,6 +41,9 @@
         statCount: document.getElementById('stat-count'),
         statTotalQuick: document.getElementById('stat-total-quick'),
         statAvgQuick: document.getElementById('stat-avg-quick'),
+        sidebarStatCount: document.getElementById('sidebar-stat-count'),
+        sidebarStatTotal: document.getElementById('sidebar-stat-total'),
+        sidebarStatAvg: document.getElementById('sidebar-stat-avg'),
 
         // Mode Switcher Tabs
         tabHours: document.getElementById('tab-hours'),
@@ -1155,6 +1158,11 @@
         elements.statCount.textContent = count;
         elements.statTotalQuick.textContent = formattedTotal;
         if (elements.statAvgQuick) elements.statAvgQuick.textContent = formatDuration(avgSeconds);
+
+        // Mirror into the sidebar summary used on small screens
+        if (elements.sidebarStatCount) elements.sidebarStatCount.textContent = count;
+        if (elements.sidebarStatTotal) elements.sidebarStatTotal.textContent = formattedTotal;
+        if (elements.sidebarStatAvg) elements.sidebarStatAvg.textContent = formatDuration(avgSeconds);
 
         // Empty State vs Items List
         if (count === 0) {

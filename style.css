@@ -1118,6 +1118,21 @@ body {
     gap: 6px;
 }
 
+/* Compact running totals (only visible on small screens, see responsive section) */
+.sidebar-stats {
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.78rem;
+    color: var(--color-fg-muted);
+    background: var(--color-canvas-inset);
+    border-bottom: 1px solid var(--color-border-default);
+}
+
 /* Saved List Items */
 .saved-list-container {
     flex: 1 1 auto;
@@ -1447,6 +1462,9 @@ body {
 @media (max-width: 860px) {
     .stats-group {
         display: none;
+    }
+    .sidebar-stats {
+        display: flex;
     }
 }
 
