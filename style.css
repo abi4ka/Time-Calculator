@@ -747,6 +747,12 @@ body {
     border-color: var(--color-fg-muted);
 }
 
+/* The real input is visually hidden: show keyboard focus on its visual box */
+.custom-checkbox input:focus-visible + .checkbox-box {
+    outline: 2px solid var(--color-accent-emphasis);
+    outline-offset: 2px;
+}
+
 .custom-checkbox input:checked + .checkbox-box {
     background: var(--color-accent-emphasis);
     border-color: var(--color-accent-emphasis);
