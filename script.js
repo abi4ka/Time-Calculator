@@ -1768,6 +1768,12 @@
         elements.btnCopySummary.addEventListener('click', copySummaryReport);
 
         // Export Dropdown
+        const closeExportMenu = (returnFocus = false) => {
+            elements.exportMenu.classList.add('hidden');
+            elements.btnExportDropdown.setAttribute('aria-expanded', 'false');
+            if (returnFocus) elements.btnExportDropdown.focus();
+        };
+
         elements.btnExportDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
             const isHidden = elements.exportMenu.classList.contains('hidden');
@@ -1782,13 +1788,22 @@
                     elements.exportMenu.style.right = 'auto';
                 }
                 elements.exportMenu.classList.remove('hidden');
+                elements.btnExportDropdown.setAttribute('aria-expanded', 'true');
+                // Menu lives at the end of <body>: move focus into it so keyboard users can reach it
+                elements.exportCsvBtn.focus();
             } else {
-                elements.exportMenu.classList.add('hidden');
+                closeExportMenu();
             }
         });
 
-        document.addEventListener('click', () => {
-            elements.exportMenu.classList.add('hidden');
+        // Picking a menu item also lands here: keep focus on the toggle instead of a hidden item
+        document.addEventListener('click', () => closeExportMenu(elements.exportMenu.contains(document.activeElement)));
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !elements.exportMenu.classList.contains('hidden')) {
+                e.preventDefault();
+                closeExportMenu(true);
+            }
         });
 
         elements.exportCsvBtn.addEventListener('click', exportToCsv);
