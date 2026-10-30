@@ -28,6 +28,7 @@
         editingId: null,
         userOvernightForced: false,
         isLive: false,
+        liveSeconds: 0, // ticking seconds currently shown by the live timer (saved with the interval)
     };
 
     // =========================================================================
@@ -758,6 +759,7 @@
     // Live Calculation Updates
     // =========================================================================
     function updateHoursCalculation(currentSeconds = 0) {
+        state.liveSeconds = state.isLive && Number.isFinite(currentSeconds) ? currentSeconds : 0;
         const start = getStartTime24();
         const end = getEndTime24();
         const startMins = parseTimeToMinutes(start);
@@ -776,7 +778,7 @@
         }
 
         const forceNextDay = elements.checkNextDay.checked;
-        const res = calculateHoursDiff(start, end, forceNextDay, state.isLive ? currentSeconds : 0);
+        const res = calculateHoursDiff(start, end, forceNextDay, state.liveSeconds);
 
         if (res.isNextDay) {
             elements.midnightIndicator.classList.remove('hidden');
@@ -799,9 +801,10 @@
     }
 
     function updateDatesCalculation(currentSeconds = 0) {
+        state.liveSeconds = state.isLive && Number.isFinite(currentSeconds) ? currentSeconds : 0;
         const start = getDatesStartDateTime();
         const end = getDatesEndDateTime();
-        const res = calculateDatesDiff(start, end, state.isLive ? currentSeconds : 0);
+        const res = calculateDatesDiff(start, end, state.liveSeconds);
 
         if (res.invalid) {
             elements.datesResPrimary.textContent = 'End date is before start date';
@@ -1596,7 +1599,8 @@
             const start = getStartTime24();
             const end = getEndTime24();
             const forceNextDay = elements.checkNextDay.checked;
-            const res = calculateHoursDiff(start, end, forceNextDay);
+            // Save exactly what is shown, including the live timer's ticking seconds
+            const res = calculateHoursDiff(start, end, forceNextDay, state.isLive ? state.liveSeconds : 0);
 
             if (res.totalSeconds === 0) {
                 showToast('Interval is empty: start and end time are the same', 'error');
@@ -1656,7 +1660,7 @@
         elements.btnAddDatesEntry.addEventListener('click', () => {
             const start = getDatesStartDateTime();
             const end = getDatesEndDateTime();
-            const res = calculateDatesDiff(start, end);
+            const res = calculateDatesDiff(start, end, state.isLive ? state.liveSeconds : 0);
 
             if (!start || !end) {
                 showToast('Please select both a start and an end date', 'error');
