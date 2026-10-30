@@ -1044,16 +1044,20 @@
                 state.currentMode = 'dates';
                 elements.tabDates.classList.add('active');
                 elements.tabDates.setAttribute('aria-selected', 'true');
+                elements.tabDates.setAttribute('tabindex', '0');
                 elements.tabHours.classList.remove('active');
                 elements.tabHours.setAttribute('aria-selected', 'false');
+                elements.tabHours.setAttribute('tabindex', '-1');
                 elements.modeDatesView.classList.remove('hidden');
                 elements.modeHoursView.classList.add('hidden');
             } else {
                 state.currentMode = 'hours';
                 elements.tabHours.classList.add('active');
                 elements.tabHours.setAttribute('aria-selected', 'true');
+                elements.tabHours.setAttribute('tabindex', '0');
                 elements.tabDates.classList.remove('active');
                 elements.tabDates.setAttribute('aria-selected', 'false');
+                elements.tabDates.setAttribute('tabindex', '-1');
                 elements.modeHoursView.classList.remove('hidden');
                 elements.modeDatesView.classList.add('hidden');
             }
@@ -1444,8 +1448,10 @@
             state.currentMode = 'dates';
             elements.tabDates.classList.add('active');
             elements.tabDates.setAttribute('aria-selected', 'true');
+            elements.tabDates.setAttribute('tabindex', '0');
             elements.tabHours.classList.remove('active');
             elements.tabHours.setAttribute('aria-selected', 'false');
+            elements.tabHours.setAttribute('tabindex', '-1');
             elements.modeDatesView.classList.remove('hidden');
             elements.modeHoursView.classList.add('hidden');
 
@@ -1474,8 +1480,10 @@
             state.currentMode = 'hours';
             elements.tabHours.classList.add('active');
             elements.tabHours.setAttribute('aria-selected', 'true');
+            elements.tabHours.setAttribute('tabindex', '0');
             elements.tabDates.classList.remove('active');
             elements.tabDates.setAttribute('aria-selected', 'false');
+            elements.tabDates.setAttribute('tabindex', '-1');
             elements.modeHoursView.classList.remove('hidden');
             elements.modeDatesView.classList.add('hidden');
 
@@ -1535,8 +1543,10 @@
                 state.currentMode = 'hours';
                 elements.tabHours.classList.add('active');
                 elements.tabHours.setAttribute('aria-selected', 'true');
+                elements.tabHours.setAttribute('tabindex', '0');
                 elements.tabDates.classList.remove('active');
                 elements.tabDates.setAttribute('aria-selected', 'false');
+                elements.tabDates.setAttribute('tabindex', '-1');
 
                 elements.modeHoursView.classList.remove('hidden');
                 elements.modeDatesView.classList.add('hidden');
@@ -1558,8 +1568,10 @@
                 state.currentMode = 'dates';
                 elements.tabDates.classList.add('active');
                 elements.tabDates.setAttribute('aria-selected', 'true');
+                elements.tabDates.setAttribute('tabindex', '0');
                 elements.tabHours.classList.remove('active');
                 elements.tabHours.setAttribute('aria-selected', 'false');
+                elements.tabHours.setAttribute('tabindex', '-1');
 
                 elements.modeDatesView.classList.remove('hidden');
                 elements.modeHoursView.classList.add('hidden');
@@ -1571,6 +1583,22 @@
                     updateDatesCalculation();
                 }
             }
+        });
+
+        // Arrow / Home / End keys move between the mode tabs (WAI-ARIA tabs pattern)
+        const modeTabs = [elements.tabHours, elements.tabDates];
+        modeTabs.forEach((tab, idx) => {
+            tab.addEventListener('keydown', (e) => {
+                let nextIdx = null;
+                if (e.key === 'ArrowRight') nextIdx = (idx + 1) % modeTabs.length;
+                else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + modeTabs.length) % modeTabs.length;
+                else if (e.key === 'Home') nextIdx = 0;
+                else if (e.key === 'End') nextIdx = modeTabs.length - 1;
+                if (nextIdx === null) return;
+                e.preventDefault();
+                modeTabs[nextIdx].focus();
+                modeTabs[nextIdx].click();
+            });
         });
 
         // 24H / 12H Format Switcher

@@ -105,15 +105,15 @@
                         </div>
 
                         <!-- Mode Switcher Tabs -->
-                        <div class="view-switch" role="tablist">
-                            <button id="tab-hours" class="tab-btn active" role="tab" aria-selected="true">
+                        <div class="view-switch" role="tablist" aria-label="Calculator mode">
+                            <button type="button" id="tab-hours" class="tab-btn active" role="tab" aria-selected="true" aria-controls="mode-hours-view" tabindex="0">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 15 15"></polyline>
                                 </svg>
                                 Time of Day
                             </button>
-                            <button id="tab-dates" class="tab-btn" role="tab" aria-selected="false">
+                            <button type="button" id="tab-dates" class="tab-btn" role="tab" aria-selected="false" aria-controls="mode-dates-view" tabindex="-1">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                     <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -127,7 +127,7 @@
 
                     <div class="calc-card-body">
                         <!-- MODE 1: Time of Day Form -->
-                        <div id="mode-hours-view" class="calc-mode-view">
+                        <div id="mode-hours-view" class="calc-mode-view" role="tabpanel" aria-labelledby="tab-hours">
                             <!-- Time Inputs Grid -->
                             <div class="time-inputs-grid">
                                 <!-- Start Time Box -->
@@ -244,7 +244,7 @@
                         </div>
 
                         <!-- MODE 2: Between Dates Form -->
-                        <div id="mode-dates-view" class="calc-mode-view hidden">
+                        <div id="mode-dates-view" class="calc-mode-view hidden" role="tabpanel" aria-labelledby="tab-dates">
                             <!-- Date & Time Inputs Grid -->
                             <div class="time-inputs-grid">
                                 <!-- Start Date & Time Box -->
