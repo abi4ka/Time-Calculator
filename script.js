@@ -725,6 +725,8 @@
 
         // Mouse wheel adjustment
         const handleWheel = (input, isHour, e) => {
+            // Only adjust a focused input; otherwise let the wheel scroll the page
+            if (document.activeElement !== input) return;
             e.preventDefault();
             notifyManual();
             const delta = e.deltaY < 0 ? 1 : -1;
