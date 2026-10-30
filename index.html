@@ -473,9 +473,12 @@
                     })
                     .catch((err) => console.error('PWA ServiceWorker failed:', err));
 
+                // Reload only when a new worker replaces an existing one (an update),
+                // not when the very first worker takes control on the first visit
+                const hadController = Boolean(navigator.serviceWorker.controller);
                 let refreshing = false;
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (!refreshing) {
+                    if (hadController && !refreshing) {
                         refreshing = true;
                         window.location.reload();
                     }
