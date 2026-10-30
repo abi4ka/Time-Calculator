@@ -1389,8 +1389,11 @@
 
             setTimePickerValue(elements.timeStartH, elements.timeStartM, elements.timeStartPeriod, item.start || '10:00');
             setTimePickerValue(elements.timeEndH, elements.timeEndM, elements.timeEndPeriod, item.end || '11:00');
-            state.userOvernightForced = Boolean(item.isNextDay);
-            elements.checkNextDay.checked = Boolean(item.isNextDay);
+            // Only an explicit "+24h" choice is a user override; end < start is derived automatically
+            const isForcedOvernight = item.isNextDay === true
+                && parseTimeToMinutes(item.end) >= parseTimeToMinutes(item.start);
+            state.userOvernightForced = isForcedOvernight;
+            elements.checkNextDay.checked = isForcedOvernight;
 
             updateHoursCalculation();
 
