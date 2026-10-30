@@ -1581,6 +1581,11 @@
             const forceNextDay = elements.checkNextDay.checked;
             const res = calculateHoursDiff(start, end, forceNextDay);
 
+            if (res.totalSeconds === 0) {
+                showToast('Interval is empty: start and end time are the same', 'error');
+                return;
+            }
+
             const editingItem = state.editingId ? state.intervals.find((s) => s.id === state.editingId) : null;
             if (editingItem && editingItem.mode === 'hours') {
                 updateInterval(state.editingId, {
@@ -1636,8 +1641,18 @@
             const end = getDatesEndDateTime();
             const res = calculateDatesDiff(start, end);
 
+            if (!start || !end) {
+                showToast('Please select both a start and an end date', 'error');
+                return;
+            }
+
             if (res.invalid) {
                 showToast('End date must be after start date', 'error');
+                return;
+            }
+
+            if (res.totalSeconds === 0) {
+                showToast('Interval is empty: start and end are the same', 'error');
                 return;
             }
 
