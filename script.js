@@ -1303,16 +1303,57 @@
                         e.target.value = '';
                         return;
                     }
+                    // Never silently overwrite existing data: offer merge first, then replace
+                    const existingCount = state.intervals.length;
+                    let importMode = 'replace';
+                    if (existingCount > 0) {
+                        if (confirm(
+                            `Import ${valid.length} intervals?\n\n` +
+                            `You already have ${existingCount} saved intervals.\n` +
+                            'OK: merge them (keep existing, skip duplicates)\n' +
+                            'Cancel: choose to replace or abort'
+                        )) {
+                            importMode = 'merge';
+                        } else if (!confirm(
+                            `Replace all ${existingCount} saved intervals with the ${valid.length} imported ones?\n\n` +
+                            'OK: replace (existing intervals will be lost)\n' +
+                            'Cancel: abort import'
+                        )) {
+                            showToast('Import cancelled', 'info');
+                            e.target.value = '';
+                            return;
+                        }
+                    }
+
                     if (state.editingId) {
                         resetEditMode();
                     }
-                    state.intervals = valid;
+
+                    const seenIds = new Set(importMode === 'merge' ? state.intervals.map((s) => s.id) : []);
+                    const incoming = valid.filter((s) => {
+                        if (seenIds.has(s.id)) return false;
+                        seenIds.add(s.id);
+                        return true;
+                    });
+                    const duplicates = valid.length - incoming.length;
+
+                    if (importMode === 'merge') {
+                        state.intervals = state.intervals
+                            .concat(incoming)
+                            .sort((a, b) => b.createdAt - a.createdAt);
+                    } else {
+                        state.intervals = incoming;
+                    }
                     saveIntervals();
+
+                    const notes = [];
+                    if (duplicates > 0) notes.push(`${duplicates} duplicate`);
+                    if (skipped > 0) notes.push(`${skipped} invalid`);
                     showToast(
-                        skipped > 0
-                            ? `Imported ${valid.length} intervals, skipped ${skipped} invalid`
-                            : `Imported ${valid.length} intervals`,
-                        skipped > 0 ? 'info' : 'success'
+                        notes.length > 0
+                            ? `Imported ${incoming.length} intervals, skipped ${notes.join(', ')}`
+                            : `Imported ${incoming.length} intervals`,
+                        notes.length > 0 ? 'info' : 'success'
                     );
                 } else {
                     showToast('Invalid JSON format (array expected)', 'error');
