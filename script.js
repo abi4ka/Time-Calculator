@@ -1019,11 +1019,50 @@
     // =========================================================================
     // Saved Intervals Store & Rendering
     // =========================================================================
+    const TIME_VALUE_RE = /^\d{2}:\d{2}$/;
+    const DATE_TIME_VALUE_RE = /^\d{4,6}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    const INTERVAL_ID_RE = /^[\w-]{1,64}$/;
+
+    /**
+     * Returns a clean copy of a stored/imported interval, or null when it can't be used.
+     * Imported files and old storage are untrusted: anything rendered must have a known shape.
+     */
+    function normalizeInterval(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+        if (raw.mode !== 'hours' && raw.mode !== 'dates') return null;
+
+        const valueRe = raw.mode === 'hours' ? TIME_VALUE_RE : DATE_TIME_VALUE_RE;
+        const isValidValue = (v) => v === null || v === undefined || v === '' || (typeof v === 'string' && valueRe.test(v));
+        if (!isValidValue(raw.start) || !isValidValue(raw.end)) return null;
+
+        const totalSeconds = Number(raw.totalSeconds);
+        if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return null;
+
+        const createdAt = Number(raw.createdAt);
+        return {
+            id: typeof raw.id === 'string' && INTERVAL_ID_RE.test(raw.id)
+                ? raw.id
+                : 'int_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            mode: raw.mode,
+            start: raw.start || null,
+            end: raw.end || null,
+            isNextDay: raw.isNextDay === true,
+            totalSeconds,
+            createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+        };
+    }
+
+    function normalizeIntervals(list) {
+        if (!Array.isArray(list)) return [];
+        return list.map(normalizeInterval).filter(Boolean);
+    }
+
     function loadIntervals() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
-                state.intervals = JSON.parse(raw);
+                // Also repairs data saved by older versions that accepted any imported JSON
+                state.intervals = normalizeIntervals(JSON.parse(raw));
             } else {
                 state.intervals = [];
             }
@@ -1115,16 +1154,16 @@
 
                 let rangeText = '';
                 if (item.mode === 'dates') {
-                    rangeText = `<span>${formatDateDisplay(item.start)}</span> <span class="arrow">→</span> <span>${formatDateDisplay(item.end)}</span>`;
+                    rangeText = `<span>${escapeHtml(formatDateDisplay(item.start))}</span> <span class="arrow">→</span> <span>${escapeHtml(formatDateDisplay(item.end))}</span>`;
                 } else {
                     const overnightBadge = item.isNextDay ? '<span class="item-overnight-tag">+1d</span>' : '';
-                    const startDisp = formatTimeDisplay(item.start);
-                    const endDisp = formatTimeDisplay(item.end);
+                    const startDisp = escapeHtml(formatTimeDisplay(item.start));
+                    const endDisp = escapeHtml(formatTimeDisplay(item.end));
                     rangeText = `<span>${startDisp}</span> <span class="arrow">→</span> <span>${endDisp}</span> ${overnightBadge}`;
                 }
 
                 return `
-                <div class="saved-item-row ${isEditing ? 'is-editing' : ''}" data-id="${item.id}">
+                <div class="saved-item-row ${isEditing ? 'is-editing' : ''}" data-id="${escapeHtml(item.id)}">
                     <div class="item-left">
                         <span class="item-num">#${itemNum}</span>
                         <div class="item-range">${rangeText}</div>
@@ -1135,13 +1174,13 @@
                             <span class="item-duration-sub">${decHours}h</span>
                         </div>
                         <div class="item-actions">
-                            <button class="action-icon-btn btn-action-edit" data-id="${item.id}" title="Edit interval">
+                            <button class="action-icon-btn btn-action-edit" data-id="${escapeHtml(item.id)}" title="Edit interval">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button class="action-icon-btn action-icon-delete btn-action-delete" data-id="${item.id}" title="Delete interval">
+                            <button class="action-icon-btn action-icon-delete btn-action-delete" data-id="${escapeHtml(item.id)}" title="Delete interval">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1257,12 +1296,24 @@
             try {
                 const imported = JSON.parse(event.target.result);
                 if (Array.isArray(imported)) {
+                    const valid = normalizeIntervals(imported);
+                    const skipped = imported.length - valid.length;
+                    if (imported.length > 0 && valid.length === 0) {
+                        showToast('No valid intervals found in file', 'error');
+                        e.target.value = '';
+                        return;
+                    }
                     if (state.editingId) {
                         resetEditMode();
                     }
-                    state.intervals = imported;
+                    state.intervals = valid;
                     saveIntervals();
-                    showToast(`Imported ${imported.length} intervals`, 'success');
+                    showToast(
+                        skipped > 0
+                            ? `Imported ${valid.length} intervals, skipped ${skipped} invalid`
+                            : `Imported ${valid.length} intervals`,
+                        skipped > 0 ? 'info' : 'success'
+                    );
                 } else {
                     showToast('Invalid JSON format (array expected)', 'error');
                 }
